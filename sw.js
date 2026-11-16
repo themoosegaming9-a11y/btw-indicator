@@ -1,4 +1,4 @@
-var CACHE = "signal-shell-v3";
+var CACHE = "signal-shell-v4";
 var SHELL = [
   "./",
   "./index.html",
@@ -7,6 +7,7 @@ var SHELL = [
   "./icons/icon-512.png",
   "./icons/icon-maskable-512.png",
   "./icons/apple-touch-icon.png",
+  "./vendor/lightweight-charts.standalone.production.js",
   "https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"
 ];
 
