@@ -187,7 +187,119 @@
     margin: 16px 4px 0;
     font-size: 12px; color: var(--dim); line-height: 1.5;
   }
+  .verdict.wait { background: linear-gradient(180deg, rgba(139,147,161,0.14), var(--card)); border-color: rgba(139,147,161,0.35); }
+  .verdict.wait .v-label { color: #c5cbd4; font-size: clamp(1.7rem, 7.6vw, 2.35rem); }
+  .v-label {
+    font-size: clamp(1.7rem, 7.6vw, 2.45rem);
+    line-height: 1.08;
+  }
+  .explain {
+    margin: 0 0 10px;
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .chart-head { align-items: center; }
+  .tf { display: flex; gap: 6px; }
+  .tf button {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--card-2);
+    color: var(--muted);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    min-height: 40px;
+    min-width: 44px;
+    padding: 6px 12px;
+    border-radius: 999px;
+  }
+  .tf button.on {
+    color: var(--text);
+    border-color: rgba(61,214,140,0.5);
+    background: var(--up-bg);
+  }
+  .chart-wrap {
+    width: 100%;
+    height: 320px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #10141b;
+  }
+  .chart-wrap canvas.fallback { width: 100%; height: 100%; display: block; }
+  .chart-note { margin: 8px 0 0; }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 6px 12px;
+    margin-top: 8px; font-size: 12px; color: var(--muted);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .sw { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+  .sw.up { background: var(--up); }
+  .sw.down { background: var(--down); }
+  .sw.ma { background: var(--neutral); height: 3px; width: 16px; border-radius: 2px; }
+  .sw.res { background: transparent; border-top: 2px dashed var(--down); height: 0; width: 16px; }
+  .sw.sup { background: transparent; border-top: 2px dashed #6cb6ff; height: 0; width: 16px; }
+  .chart-bleed {
+    width: calc(100% + 28px);
+    margin-left: -14px;
+    margin-right: -14px;
+    border-radius: 0;
+  }
+  .pressure-label {
+    font-size: clamp(1.25rem, 5.5vw, 1.55rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0 0 10px;
+  }
+  .pressure-label.up { color: var(--up); }
+  .pressure-label.down { color: var(--down); }
+  .meter {
+    display: flex;
+    height: 22px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--card-2);
+    border: 1px solid var(--line);
+  }
+  .meter-buy { background: var(--up); width: 50%; height: 100%; }
+  .meter-sell { background: var(--down); width: 50%; height: 100%; }
+  .meter-scale {
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: var(--dim); margin-top: 4px;
+  }
+  .book { margin-top: 10px; font-size: 14px; color: var(--text); line-height: 1.4; min-height: 1.2em; }
+  details.details {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 4px 14px 12px;
+    margin: 12px 0;
+  }
+  details.details summary {
+    cursor: pointer;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 13px;
+    color: var(--text);
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+  }
+  details.details h2 { margin-top: 12px; }
+  .regime-head { margin-top: 8px; }
+  @media (max-width: 640px) {
+    body { padding-left: 10px; padding-right: 10px; max-width: none; }
+    .chart-wrap { height: 68vw; min-height: 240px; max-height: 380px; }
+    .chart-bleed {
+      width: calc(100% + 50px);
+      margin-left: -25px;
+      margin-right: -25px;
+    }
+    .spark-head { flex-wrap: wrap; }
+  }
 </style>
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
   <div class="top">
@@ -200,13 +312,45 @@
     <span class="chip" id="source">—</span>
     <span class="chip" id="chg24">24h —</span>
   </div>
-  <div class="stale-banner" id="staleBanner">STALE — price is more than 5 seconds old. Lean may be outdated.</div>
-
   <section class="verdict warm" id="verdictCard">
-    <div class="v-label" id="verdict">CONNECTING</div>
+    <div class="v-label" id="verdict">Connecting…</div>
     <div class="v-conf" id="confidence"></div>
-    <div class="v-note" id="verdictNote">Short-term lean, not a guarantee.</div>
+    <div class="v-note" id="verdictNote">Loading the live price.</div>
     <div class="v-warn" id="verdictWarn"></div>
+  </section>
+  <div class="stale-banner" id="staleBanner">Price looks frozen (older than 5 seconds), so the call above may be wrong.</div>
+
+  <section class="card">
+    <div class="spark-head chart-head">
+      <h2>Live chart</h2>
+      <div class="tf" id="tfToggle" role="group" aria-label="Candle size">
+        <button type="button" data-tf="10" class="on" aria-pressed="true">10s</button>
+        <button type="button" data-tf="60" aria-pressed="false">1m</button>
+        <button type="button" data-tf="300" aria-pressed="false">5m</button>
+      </div>
+    </div>
+    <p class="explain">Green candles finished higher than they started. Red finished lower. The gold line is the average price paid (VWAP). Dashed lines are a ceiling where rallies stalled and a floor where dips found buyers.</p>
+    <div id="chart" class="chart-wrap chart-bleed" role="img" aria-label="Live Bitcoin candlestick chart"></div>
+    <div class="legend">
+      <span><i class="sw up"></i>Up</span>
+      <span><i class="sw down"></i>Down</span>
+      <span><i class="sw ma"></i>VWAP</span>
+      <span><i class="sw res"></i>Resistance (ceiling)</span>
+      <span><i class="sw sup"></i>Support (floor)</span>
+    </div>
+    <p class="explain chart-note" id="chartNote">10-second candles build from live trades. Earlier bars are estimated from 1-minute prices until trades replace them.</p>
+  </section>
+
+  <section class="card">
+    <h2>Pressure</h2>
+    <p class="explain">Who is pushing harder right now, from trades in the last 60 seconds. “Buyers in control” means more of those trades were people lifting the price.</p>
+    <div class="pressure-label" id="pressureLabel">Waiting for trades</div>
+    <div class="meter" id="pressureMeter">
+      <div class="meter-buy" id="meterBuy"></div>
+      <div class="meter-sell" id="meterSell"></div>
+    </div>
+    <div class="meter-scale"><span>Sellers</span><span>Buyers</span></div>
+    <div class="book" id="bookLine"></div>
   </section>
 
   <section class="card">
@@ -214,27 +358,34 @@
       <h2>Last 15 minutes</h2>
       <div class="spark-chg" id="sparkChg">—</div>
     </div>
+    <p class="explain">A simple line of where the price has been for the last 15 minutes.</p>
     <svg class="spark" id="spark" viewBox="0 0 300 84" preserveAspectRatio="none" aria-hidden="true"></svg>
   </section>
 
   <section class="card">
-    <h2>Signals</h2>
-    <div class="signals" id="signals"></div>
+    <h2>Clues</h2>
+    <p class="explain">Each row is one clue behind the call above. Rising helps an up call, falling helps a down call. The raw numbers sit under Details.</p>
+    <div class="signals" id="clues"></div>
   </section>
 
-  <section class="card">
-    <div class="spark-head">
+  <details class="details">
+    <summary>Details</summary>
+    <p class="explain">Jargon and raw numbers for the same clues. You can ignore this and just use the call at the top.</p>
+    <h2>Signals</h2>
+    <div class="signals" id="signals"></div>
+    <div class="spark-head regime-head">
       <h2>Higher-timeframe regime</h2>
       <div class="spark-chg" id="regimeLabel">—</div>
     </div>
+    <p class="explain">This looks at the last hour through the last week, not just the last few minutes. Above zero leans up, below zero leans down.</p>
     <div class="regime-grid" id="regimeGrid"></div>
-  </section>
+  </details>
 
   <p class="foot">
     This is a short-term lean from live Coinbase (Kraken fallback) prices, not a prediction or a guarantee.
     Bitcoin can reverse in seconds. Signals mirror the trading bot’s 10-second trend z-score, 5-minute slope filter,
     and multi-timeframe regime math. Moves inside normal noise, or signals that disagree, show as
-    <strong style="color:var(--muted)">NO CLEAR SIGNAL</strong>. Not financial advice.
+    <strong style="color:var(--muted)">No clear direction — wait</strong>. Not financial advice.
   </p>
 
 <script>
@@ -273,7 +424,15 @@
     sparkChg: document.getElementById("sparkChg"),
     signals: document.getElementById("signals"),
     regimeLabel: document.getElementById("regimeLabel"),
-    regimeGrid: document.getElementById("regimeGrid")
+    regimeGrid: document.getElementById("regimeGrid"),
+    chart: document.getElementById("chart"),
+    chartNote: document.getElementById("chartNote"),
+    tfToggle: document.getElementById("tfToggle"),
+    pressureLabel: document.getElementById("pressureLabel"),
+    meterBuy: document.getElementById("meterBuy"),
+    meterSell: document.getElementById("meterSell"),
+    bookLine: document.getElementById("bookLine"),
+    clues: document.getElementById("clues")
   };
 
   var state = {
@@ -303,7 +462,26 @@
     hour: [],
     cbVar: null,
     regime: null,
-    seeded: false
+    seeded: false,
+    chart10: [],
+    chart1: [],
+    chart5: [],
+    bidSz: null,
+    askSz: null
+  };
+
+  var chartCtl = {
+    tf: 10,
+    mode: null,
+    chart: null,
+    candles: null,
+    volume: null,
+    vwap: null,
+    lines: [],
+    lastSig: "",
+    lineKey: "",
+    needFit: true,
+    canvas: null
   };
 
   function nowSec() { return Date.now() / 1000; }
@@ -359,9 +537,9 @@
   }
 
   function addTick(ts, px) {
-    if (!(px > 0) || !isFinite(px) || !isFinite(ts)) return;
+    if (!(px > 0) || !isFinite(px) || !isFinite(ts)) return false;
     // ignore stale / far out-of-order ticks (bot: ts < last - 1s)
-    if (state.lastExchTs && ts < state.lastExchTs - 1) return;
+    if (state.lastExchTs && ts < state.lastExchTs - 1) return false;
     var s = Math.floor(ts);
     state.sec.set(s, px);
     state.lastPx = px;
@@ -378,13 +556,16 @@
       bar.n += 1;
     }
     if (state.sec.size % 40 === 0) pruneSec(s - 4 * 3600);
+    touchCharts(ts, px, 0);
+    return true;
   }
 
   function addTrade(ts, px, qty, takerBuy) {
     if (!(qty > 0) || !isFinite(qty)) return;
-    addTick(ts, px);
+    var accepted = addTick(ts, px);
     state.trades.push({ t: ts, px: px, qty: qty, takerBuy: !!takerBuy });
     if (state.trades.length > 4000) state.trades.splice(0, state.trades.length - 3000);
+    if (accepted) touchCharts(ts, px, qty);
   }
 
   function priceAtOrBefore(t) {
@@ -728,6 +909,671 @@
     };
   }
 
+  var PLAIN = {
+    "10s momentum": ["Last 10 seconds", "Did the price just pop or drop?"],
+    "60s momentum": ["Last minute", "How the price moved over the last minute."],
+    "5m momentum": ["Last 5 minutes", "How the price moved over five minutes."],
+    "15m momentum": ["Last 15 minutes", "How the price moved over fifteen minutes."],
+    "Trend z (180s)": ["3-minute trend", "Whether the short trend is rising or falling."],
+    "5m trend (300s)": ["5-minute trend", "Whether the five-minute trend is rising or falling."],
+    "Order flow 60s": ["Buyers vs sellers", "Who was more aggressive over the last minute."],
+    "Regime": ["Bigger picture", "The tone over hours and days, not just minutes."]
+  };
+
+  function confWord(lvl) {
+    if (lvl === "High") return "strong";
+    if (lvl === "Medium") return "medium";
+    if (lvl === "Low") return "weak";
+    return "";
+  }
+
+  function plainReason(d) {
+    if (d.warm) return "Still loading recent prices. The call shows up once the live feed settles.";
+    if (d.lean === 0) {
+      if (d.warn) return "The last few minutes and the bigger trend disagree, so there is no clear direction.";
+      if (d.reason && d.reason.indexOf("noise") >= 0) return "The move is still inside normal noise. No clear direction yet.";
+      return "The clues disagree, so there is no clear direction. Waiting is safer.";
+    }
+    var up = d.lean > 0;
+    var byKey = {};
+    for (var i = 0; i < d.signals.length; i++) byKey[d.signals[i].key] = d.signals[i];
+    function agrees(key) {
+      var s = byKey[key];
+      return !!(s && s.vote !== 0 && ((s.vote > 0) === up));
+    }
+    var parts = [];
+    if (agrees("Order flow 60s")) parts.push(up ? "Buyers are pushing harder than sellers" : "Sellers are pushing harder than buyers");
+    if (agrees("5m trend (300s)") || agrees("Trend z (180s)") || agrees("5m momentum") || agrees("15m momentum")) {
+      parts.push(up ? "price is above its recent average" : "price is below its recent average");
+    }
+    if (parts.length < 2 && agrees("Regime")) parts.push("the bigger picture agrees");
+    if (!parts.length) parts.push(up ? "Most of the clues point up" : "Most of the clues point down");
+    var sentence = parts[0];
+    if (parts.length > 1) sentence += " and " + parts[1];
+    sentence = sentence.charAt(0).toUpperCase() + sentence.slice(1);
+    return sentence + ".";
+  }
+
+  function plainWarn(d) {
+    if (!d.warn) return "";
+    if (d.warn.indexOf("vs regime") >= 0) return "The last few minutes and the bigger trend point opposite ways.";
+    return d.warn;
+  }
+
+  function renderClues(d) {
+    var html = "";
+    for (var i = 0; i < d.signals.length; i++) {
+      var s = d.signals[i];
+      var pair = PLAIN[s.key] || [s.key, ""];
+      var missing = (s.z == null && s.key !== "Regime") || (s.key === "Regime" && !d.regime);
+      var word = "Flat", dc = "neutral";
+      if (missing) { word = "Not ready"; dc = "neutral"; }
+      else if (s.vote > 0) { word = "Rising"; dc = "up"; }
+      else if (s.vote < 0) { word = "Falling"; dc = "down"; }
+      html += '<div class="sig"><div class="sig-name">' + pair[0] + '</div>' +
+        '<div class="sig-dir ' + dc + '">' + word + '</div>' +
+        '<div class="sig-val">' + pair[1] + "</div></div>";
+    }
+    el.clues.innerHTML = html;
+  }
+
+  function renderPressure() {
+    var flow = orderFlow(60);
+    if (flow.buyShare == null || !(flow.n > 0)) {
+      el.pressureLabel.textContent = "Waiting for trades";
+      el.pressureLabel.className = "pressure-label";
+      el.meterBuy.style.width = "50%";
+      el.meterSell.style.width = "50%";
+    } else {
+      var buyPct = Math.round(flow.buyShare * 100);
+      if (buyPct < 0) buyPct = 0;
+      if (buyPct > 100) buyPct = 100;
+      var sellPct = 100 - buyPct;
+      if (buyPct >= 55) {
+        el.pressureLabel.textContent = "Buyers in control " + buyPct + "%";
+        el.pressureLabel.className = "pressure-label up";
+      } else if (sellPct >= 55) {
+        el.pressureLabel.textContent = "Sellers in control " + sellPct + "%";
+        el.pressureLabel.className = "pressure-label down";
+      } else {
+        el.pressureLabel.textContent = "About even · buyers " + buyPct + "%";
+        el.pressureLabel.className = "pressure-label";
+      }
+      el.meterBuy.style.width = buyPct + "%";
+      el.meterSell.style.width = sellPct + "%";
+    }
+    if ((state.bidSz > 0 || state.askSz > 0) && (state.bidSz + state.askSz) > 0) {
+      var tot = state.bidSz + state.askSz;
+      var bidPct = Math.round(state.bidSz / tot * 100);
+      var askPct = 100 - bidPct;
+      var side;
+      if (bidPct >= 55) side = "more size waiting to buy (bid) " + bidPct + "%";
+      else if (askPct >= 55) side = "more size waiting to sell (ask) " + askPct + "%";
+      else side = "bid and ask size about even (" + bidPct + "% bid)";
+      el.bookLine.textContent = "Order book (best bid vs best ask): " + side + ".";
+    } else {
+      el.bookLine.textContent = "";
+    }
+  }
+
+  function touchCharts(ts, px, qty) {
+    if (!(px > 0) || !isFinite(ts)) return;
+    var s = Math.floor(ts);
+    var q = qty > 0 ? qty : 0;
+    upsertChart(state.chart10, s - (s % 10), 10, px, q);
+    upsertChart(state.chart1, s - (s % 60), 60, px, q);
+    upsertChart(state.chart5, s - (s % 300), 300, px, q);
+  }
+
+  function upsertChart(arr, bucket, step, px, qty) {
+    var now = Math.floor(nowSec());
+    var cur = now - (now % step);
+    var historical = bucket < cur;
+    var i = arr.length - 1;
+    while (i >= 0 && arr[i].t > bucket) i--;
+    if (i >= 0 && arr[i].t === bucket) {
+      var bar = arr[i];
+      if (bar.synthetic && !historical) {
+        bar.o = px; bar.h = px; bar.l = px; bar.c = px;
+        bar.v = qty > 0 ? qty : 0;
+        bar.synthetic = false;
+        bar.live = true;
+        return;
+      }
+      if (bar.synthetic && historical && qty > 0) {
+        bar.o = px; bar.h = px; bar.l = px; bar.c = px; bar.v = qty;
+        bar.synthetic = false; bar.live = true;
+        return;
+      }
+      if (bar.synthetic && historical) return;
+      if (px > bar.h) bar.h = px;
+      if (px < bar.l) bar.l = px;
+      bar.c = px;
+      if (qty > 0) {
+        bar.v = (bar.v || 0) + qty;
+        bar.live = true;
+        bar.synthetic = false;
+      }
+      return;
+    }
+    if (historical && qty <= 0) return;
+    arr.splice(i + 1, 0, { t: bucket, o: px, h: px, l: px, c: px, v: qty > 0 ? qty : 0, synthetic: false, live: true });
+    if (arr.length > 500) arr.splice(0, arr.length - 500);
+  }
+
+  function barsFromRest(rows) {
+    var out = [];
+    for (var i = 0; i < rows.length; i++) {
+      var c = rows[i];
+      if (!(c && c.t > 0 && c.c > 0)) continue;
+      out.push({
+        t: c.t,
+        o: c.o > 0 ? c.o : c.c,
+        h: c.h > 0 ? c.h : c.c,
+        l: c.l > 0 ? c.l : c.c,
+        c: c.c,
+        v: c.v > 0 ? c.v : 0,
+        synthetic: false,
+        live: false
+      });
+    }
+    return out;
+  }
+
+  function mergeRest(live, rest, step) {
+    var now = Math.floor(nowSec());
+    var cur = now - (now % step);
+    var byT = {};
+    for (var i = 0; i < rest.length; i++) {
+      if (rest[i].t >= cur) continue;
+      byT[rest[i].t] = rest[i];
+    }
+    for (var j = 0; j < live.length; j++) {
+      var b = live[j];
+      if (!b || !(b.t > 0)) continue;
+      if (b.t >= cur || b.live || !byT[b.t]) byT[b.t] = b;
+    }
+    var keys = Object.keys(byT);
+    keys.sort(function (a, b) { return (+a) - (+b); });
+    var out = [];
+    for (var k = 0; k < keys.length; k++) out.push(byT[keys[k]]);
+    if (out.length > 500) out = out.slice(-500);
+    return out;
+  }
+
+  function seed10FromMinutes(minutes) {
+    var have = {};
+    for (var i = 0; i < state.chart10.length; i++) have[state.chart10[i].t] = true;
+    var now = Math.floor(nowSec());
+    var cur = now - (now % 10);
+    var recent = minutes.slice(-90);
+    for (var j = 0; j < recent.length; j++) {
+      var c = recent[j];
+      if (!(c.c > 0)) continue;
+      var o0 = c.o > 0 ? c.o : c.c;
+      for (var k = 0; k < 6; k++) {
+        var start = c.t + k * 10;
+        if (start >= cur || have[start]) continue;
+        var o = o0 + (c.c - o0) * (k / 6);
+        var cl = o0 + (c.c - o0) * ((k + 1) / 6);
+        if (!(o > 0)) o = c.c;
+        if (!(cl > 0)) cl = c.c;
+        state.chart10.push({
+          t: start, o: o, h: Math.max(o, cl), l: Math.min(o, cl), c: cl,
+          v: (c.v > 0 ? c.v : 0) / 6, synthetic: true, live: false
+        });
+        have[start] = true;
+      }
+    }
+    state.chart10.sort(function (a, b) { return a.t - b.t; });
+    if (state.chart10.length > 500) state.chart10 = state.chart10.slice(-500);
+  }
+
+  function seedChartSeries() {
+    if (state.min1 && state.min1.length) {
+      state.chart1 = mergeRest(state.chart1, barsFromRest(state.min1), 60);
+      seed10FromMinutes(state.min1);
+    }
+    if (state.min5 && state.min5.length) {
+      state.chart5 = mergeRest(state.chart5, barsFromRest(state.min5), 300);
+    }
+    chartCtl.lastSig = "";
+  }
+
+  function activeSeries() {
+    if (chartCtl.tf === 60) return state.chart1;
+    if (chartCtl.tf === 300) return state.chart5;
+    return state.chart10;
+  }
+
+  function countRealBars(arr) {
+    var n = 0;
+    for (var i = 0; i < arr.length; i++) if (arr[i] && !arr[i].synthetic) n++;
+    return n;
+  }
+
+  function srSource() {
+    if (chartCtl.tf === 300 && state.chart5.length >= 15) return state.chart5;
+    if (chartCtl.tf === 60 && state.chart1.length >= 15) return state.chart1;
+    if (chartCtl.tf === 10 && countRealBars(state.chart10) >= 20) return state.chart10;
+    if (state.chart1.length >= 15) return state.chart1;
+    return activeSeries();
+  }
+
+  function clusterLevels(prices, tol) {
+    var s = prices.slice().sort(function (a, b) { return a - b; });
+    var groups = [];
+    for (var i = 0; i < s.length; i++) {
+      var g = groups.length ? groups[groups.length - 1] : null;
+      if (g && Math.abs(s[i] - g.mean) <= tol) {
+        g.sum += s[i];
+        g.n += 1;
+        g.mean = g.sum / g.n;
+      } else groups.push({ sum: s[i], n: 1, mean: s[i] });
+    }
+    var out = [];
+    for (var j = 0; j < groups.length; j++) out.push({ price: groups[j].mean, count: groups[j].n });
+    return out;
+  }
+
+  function pickSR(px) {
+    var src = srSource();
+    if (!src || src.length < 12 || !(px > 0)) return [];
+    var wing = src.length > 80 ? 3 : 2;
+    var highs = [], lows = [];
+    var start = Math.max(wing, src.length - 160);
+    for (var i = start; i < src.length - wing; i++) {
+      var hi = true, lo = true;
+      for (var k = 1; k <= wing; k++) {
+        if (src[i].h < src[i - k].h || src[i].h < src[i + k].h) hi = false;
+        if (src[i].l > src[i - k].l || src[i].l > src[i + k].l) lo = false;
+      }
+      if (hi) highs.push(src[i].h);
+      if (lo) lows.push(src[i].l);
+    }
+    var tol = px * 0.0012;
+    var minP = Infinity, maxP = -Infinity;
+    var view = src.slice(-80);
+    for (var v = 0; v < view.length; v++) {
+      if (view[v].l < minP) minP = view[v].l;
+      if (view[v].h > maxP) maxP = view[v].h;
+    }
+    var span = Math.max(maxP - minP, px * 0.0015);
+    var bandLo = Math.min(minP, px) - span * 0.65;
+    var bandHi = Math.max(maxP, px) + span * 0.65;
+    function choose(list, above) {
+      var clustered = clusterLevels(list, tol);
+      var near = [];
+      for (var n = 0; n < clustered.length; n++) {
+        var p = clustered[n].price;
+        var okSide = above ? p > px * 1.00015 : p < px * 0.99985;
+        if (!okSide || p < bandLo || p > bandHi) continue;
+        near.push(clustered[n]);
+      }
+      near.sort(function (a, b) {
+        return Math.abs(a.price - px) / Math.sqrt(a.count) - Math.abs(b.price - px) / Math.sqrt(b.count);
+      });
+      return near.slice(0, 2);
+    }
+    var lines = [];
+    var res = choose(highs, true);
+    var sup = choose(lows, false);
+    for (var r = 0; r < res.length; r++) {
+      lines.push({ price: res[r].price, color: "#ff5b6e", title: r === 0 ? "Resistance (ceiling)" : "Resistance" });
+    }
+    for (var u = 0; u < sup.length; u++) {
+      lines.push({ price: sup[u].price, color: "#6cb6ff", title: u === 0 ? "Support (floor)" : "Support" });
+    }
+    return lines;
+  }
+
+  function cleanSeries(arr) {
+    var out = [];
+    for (var i = 0; i < arr.length; i++) {
+      var b = arr[i];
+      if (!b || !(b.t > 0) || !(b.c > 0)) continue;
+      var o = b.o > 0 ? b.o : b.c;
+      var c = b.c;
+      var h = Math.max(b.h || 0, o, c);
+      var l = b.l > 0 ? Math.min(b.l, o, c) : Math.min(o, c);
+      var row = { t: b.t, o: o, h: h, l: l, c: c, v: b.v > 0 ? b.v : 0 };
+      if (out.length && out[out.length - 1].t === row.t) out[out.length - 1] = row;
+      else if (!out.length || row.t > out[out.length - 1].t) out.push(row);
+    }
+    return out;
+  }
+
+  function vwapOf(data) {
+    var out = [];
+    var pv = 0, vv = 0, sum = 0, n = 0, last = null;
+    for (var i = 0; i < data.length; i++) {
+      var c = data[i];
+      var vol = c.v > 0 ? c.v : 0;
+      var value;
+      if (vol > 0) {
+        pv += ((c.h + c.l + c.c) / 3) * vol;
+        vv += vol;
+        value = pv / vv;
+        last = value;
+      } else if (last != null) value = last;
+      else {
+        sum += c.c;
+        n += 1;
+        value = sum / n;
+      }
+      out.push({ t: c.t, v: value });
+    }
+    return out;
+  }
+
+  function sizeTV() {
+    if (!chartCtl.chart || !el.chart) return;
+    var w = el.chart.clientWidth || 300;
+    var h = el.chart.clientHeight || 280;
+    chartCtl.chart.applyOptions({ width: w, height: h });
+  }
+
+  function setupTV(host) {
+    var bg = { color: "#10141b" };
+    if (window.LightweightCharts.ColorType) bg.type = LightweightCharts.ColorType.Solid;
+    var chart = LightweightCharts.createChart(host, {
+      width: host.clientWidth,
+      height: host.clientHeight || 300,
+      layout: {
+        background: bg,
+        textColor: "#8b93a1",
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+        attributionLogo: false
+      },
+      grid: {
+        vertLines: { color: "#1e2530" },
+        horzLines: { color: "#1e2530" }
+      },
+      rightPriceScale: { borderColor: "#2a3140" },
+      timeScale: { borderColor: "#2a3140", timeVisible: true, secondsVisible: true, rightOffset: 2 },
+      crosshair: {
+        vertLine: { color: "#5d6573", labelBackgroundColor: "#1a1f28" },
+        horzLine: { color: "#5d6573", labelBackgroundColor: "#1a1f28" }
+      },
+      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+      handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true }
+    });
+    chartCtl.chart = chart;
+    chartCtl.candles = chart.addCandlestickSeries({
+      upColor: "#3dd68c",
+      downColor: "#ff5b6e",
+      borderUpColor: "#3dd68c",
+      borderDownColor: "#ff5b6e",
+      wickUpColor: "#3dd68c",
+      wickDownColor: "#ff5b6e",
+      priceLineColor: "#f2f4f7"
+    });
+    chartCtl.candles.priceScale().applyOptions({ scaleMargins: { top: 0.08, bottom: 0.22 } });
+    chartCtl.volume = chart.addHistogramSeries({
+      priceFormat: { type: "volume" },
+      priceScaleId: "vol",
+      priceLineVisible: false,
+      lastValueVisible: false
+    });
+    chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.82, bottom: 0 }, visible: false });
+    chartCtl.vwap = chart.addLineSeries({
+      color: "#e7c25a",
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: true,
+      title: "VWAP",
+      crosshairMarkerVisible: false
+    });
+    if (typeof ResizeObserver === "function") {
+      var ro = new ResizeObserver(function () { sizeTV(); });
+      ro.observe(host);
+    } else {
+      window.addEventListener("resize", sizeTV);
+    }
+  }
+
+  function setupCanvas(host) {
+    host.innerHTML = "";
+    var canvas = document.createElement("canvas");
+    canvas.className = "fallback";
+    host.appendChild(canvas);
+    chartCtl.canvas = canvas;
+    chartCtl.chart = null;
+  }
+
+  function ensureChart() {
+    if (chartCtl.mode) return true;
+    var host = el.chart;
+    if (!host || host.clientWidth < 20) return false;
+    if (window.LightweightCharts && typeof LightweightCharts.createChart === "function") {
+      try {
+        setupTV(host);
+        chartCtl.mode = "tv";
+        return true;
+      } catch (e) {
+        chartCtl.mode = null;
+        chartCtl.chart = null;
+      }
+    }
+    setupCanvas(host);
+    chartCtl.mode = "canvas";
+    return !!chartCtl.canvas;
+  }
+
+  function showRecent(total) {
+    var n = chartCtl.tf === 10 ? 36 : (chartCtl.tf === 300 ? 48 : 60);
+    var from = Math.max(-0.5, total - n);
+    try { chartCtl.chart.timeScale().setVisibleLogicalRange({ from: from, to: total + 1.5 }); } catch (e) {}
+  }
+
+  function pinnedToEnd(total) {
+    try {
+      var r = chartCtl.chart.timeScale().getVisibleLogicalRange();
+      if (!r) return true;
+      return r.to >= total - 2;
+    } catch (e) { return true; }
+  }
+
+  function syncLines(lines) {
+    var key = "";
+    for (var i = 0; i < lines.length; i++) key += lines[i].title + "@" + lines[i].price.toFixed(2) + ";";
+    if (key === chartCtl.lineKey) return;
+    chartCtl.lineKey = key;
+    for (var j = 0; j < chartCtl.lines.length; j++) {
+      try { chartCtl.candles.removePriceLine(chartCtl.lines[j]); } catch (e) {}
+    }
+    chartCtl.lines = [];
+    var dashed = (window.LightweightCharts && LightweightCharts.LineStyle && LightweightCharts.LineStyle.Dashed) || 2;
+    for (var k = 0; k < lines.length; k++) {
+      if (!(lines[k].price > 0)) continue;
+      chartCtl.lines.push(chartCtl.candles.createPriceLine({
+        price: lines[k].price,
+        color: lines[k].color,
+        lineWidth: 2,
+        lineStyle: dashed,
+        axisLabelVisible: true,
+        title: lines[k].title
+      }));
+    }
+  }
+
+  function renderCanvas(data, lines, vwap) {
+    var canvas = chartCtl.canvas;
+    if (!canvas) return;
+    var host = el.chart;
+    var dpr = window.devicePixelRatio || 1;
+    var w = host.clientWidth || 300;
+    var h = host.clientHeight || 280;
+    var pw = Math.max(1, Math.floor(w * dpr));
+    var ph = Math.max(1, Math.floor(h * dpr));
+    if (canvas.width !== pw || canvas.height !== ph) {
+      canvas.width = pw;
+      canvas.height = ph;
+    }
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+    var ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "#10141b";
+    ctx.fillRect(0, 0, w, h);
+    var viewN = chartCtl.tf === 10 ? 36 : (chartCtl.tf === 300 ? 48 : 60);
+    var view = data.length > viewN ? data.slice(data.length - viewN) : data.slice();
+    if (!view.length) {
+      ctx.fillStyle = "#8b93a1";
+      ctx.font = "14px sans-serif";
+      ctx.fillText("Waiting for candles…", 12, Math.round(h / 2));
+      return;
+    }
+    var minP = Infinity, maxP = -Infinity, maxV = 0;
+    for (var i = 0; i < view.length; i++) {
+      if (view[i].l < minP) minP = view[i].l;
+      if (view[i].h > maxP) maxP = view[i].h;
+      if (view[i].v > maxV) maxV = view[i].v;
+    }
+    for (var li = 0; li < lines.length; li++) {
+      if (lines[li].price < minP) minP = lines[li].price;
+      if (lines[li].price > maxP) maxP = lines[li].price;
+    }
+    if (!(maxP > minP)) { maxP = minP + 1; minP -= 1; }
+    var pad = (maxP - minP) * 0.08;
+    minP -= pad; maxP += pad;
+    var volH = maxV > 0 ? Math.round(h * 0.18) : 0;
+    var top = 18, right = 6, left = 6;
+    var bottom = h - volH - 8;
+    var plotH = Math.max(10, bottom - top);
+    var plotW = Math.max(10, w - left - right);
+    function yOf(p) { return top + (maxP - p) / (maxP - minP) * plotH; }
+    var slot = plotW / view.length;
+    var bodyW = Math.max(2, Math.min(14, slot * 0.62));
+    ctx.strokeStyle = "#1e2530";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (var g = 0; g < 4; g++) {
+      var gy = top + plotH * (g / 3);
+      ctx.moveTo(left, gy);
+      ctx.lineTo(w - right, gy);
+    }
+    ctx.stroke();
+    if (maxV > 0) {
+      var base = h - 4;
+      for (var vi = 0; vi < view.length; vi++) {
+        var vh = (view[vi].v / maxV) * (volH - 6);
+        ctx.fillStyle = view[vi].c >= view[vi].o ? "rgba(61,214,140,0.45)" : "rgba(255,91,110,0.45)";
+        var vx = left + vi * slot + slot / 2;
+        ctx.fillRect(vx - bodyW / 2, base - vh, bodyW, Math.max(0, vh));
+      }
+    }
+    if (vwap && vwap.length) {
+      var vmap = {};
+      for (var m = 0; m < vwap.length; m++) vmap[vwap[m].t] = vwap[m].v;
+      ctx.beginPath();
+      ctx.strokeStyle = "#e7c25a";
+      ctx.lineWidth = 2;
+      var started = false;
+      for (var pi = 0; pi < view.length; pi++) {
+        var val = vmap[view[pi].t];
+        if (!(val > 0)) continue;
+        var x = left + pi * slot + slot / 2;
+        var y = yOf(val);
+        if (!started) { ctx.moveTo(x, y); started = true; }
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    for (var ci = 0; ci < view.length; ci++) {
+      var cdl = view[ci];
+      var up = cdl.c >= cdl.o;
+      var x = left + ci * slot + slot / 2;
+      ctx.strokeStyle = up ? "#3dd68c" : "#ff5b6e";
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, yOf(cdl.h));
+      ctx.lineTo(x, yOf(cdl.l));
+      ctx.stroke();
+      var y1 = yOf(Math.max(cdl.o, cdl.c));
+      var y2 = yOf(Math.min(cdl.o, cdl.c));
+      ctx.fillRect(x - bodyW / 2, y1, bodyW, Math.max(1, y2 - y1));
+    }
+    ctx.font = "11px sans-serif";
+    ctx.setLineDash([4, 3]);
+    var lastLabelY = -999;
+    for (var si = 0; si < lines.length; si++) {
+      var ly = yOf(lines[si].price);
+      ctx.strokeStyle = lines[si].color;
+      ctx.fillStyle = lines[si].color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(left, ly);
+      ctx.lineTo(w - right, ly);
+      ctx.stroke();
+      var textY = ly - 4;
+      if (Math.abs(textY - lastLabelY) < 12) textY = ly + 12;
+      if (textY < 12) textY = ly + 12;
+      ctx.fillText(lines[si].title, left + 4, textY);
+      lastLabelY = textY;
+    }
+    ctx.setLineDash([]);
+  }
+
+  function renderChart() {
+    if (!ensureChart()) return;
+    var data = cleanSeries(activeSeries());
+    var px = state.lastPx;
+    if (!(px > 0) && data.length) px = data[data.length - 1].c;
+    var lines = pickSR(px);
+    var ma = vwapOf(data);
+    if (chartCtl.mode === "canvas") {
+      renderCanvas(data, lines, ma);
+      return;
+    }
+    var mapped = [];
+    var vol = [];
+    var maPts = [];
+    for (var i = 0; i < data.length; i++) {
+      var b = data[i];
+      mapped.push({ time: b.t, open: b.o, high: b.h, low: b.l, close: b.c });
+      vol.push({
+        time: b.t,
+        value: b.v,
+        color: b.c >= b.o ? "rgba(61,214,140,0.45)" : "rgba(255,91,110,0.45)"
+      });
+      maPts.push({ time: ma[i].t, value: ma[i].v });
+    }
+    var head = data.length ? data[0].t : 0;
+    var structural = chartCtl.tf + ":" + head + ":" + data.length;
+    chartCtl.chart.applyOptions({ timeScale: { secondsVisible: chartCtl.tf === 10, timeVisible: true } });
+    if (!mapped.length) return;
+    if (structural !== chartCtl.lastSig) {
+      var follow = chartCtl.needFit || pinnedToEnd(mapped.length);
+      var saved = null;
+      try { saved = chartCtl.chart.timeScale().getVisibleLogicalRange(); } catch (e0) {}
+      chartCtl.candles.setData(mapped);
+      chartCtl.volume.setData(vol);
+      chartCtl.vwap.setData(maPts);
+      chartCtl.lastSig = structural;
+      if (follow) {
+        showRecent(mapped.length);
+        chartCtl.needFit = false;
+      } else if (saved) {
+        try { chartCtl.chart.timeScale().setVisibleLogicalRange(saved); } catch (e1) {}
+      }
+    } else {
+      chartCtl.candles.update(mapped[mapped.length - 1]);
+      chartCtl.volume.update(vol[vol.length - 1]);
+      chartCtl.vwap.update(maPts[maPts.length - 1]);
+    }
+    syncLines(lines);
+  }
+
+  function chartNoteFor(tf) {
+    if (tf === 60) return "Each candle is one minute. History comes from Coinbase, then live trades update the latest candle.";
+    if (tf === 300) return "Each candle is five minutes. History comes from Coinbase, then live trades update the latest candle.";
+    return "10-second candles build from live trades. Earlier bars are estimated from 1-minute prices until trades replace them.";
+  }
+
   function renderSpark() {
     var tNow = nowSec();
     var t0 = tNow - 900;
@@ -788,7 +1634,7 @@
       el.age.textContent = state.connected ? "waiting for ticks" : "waiting for feed";
       el.age.className = "age";
     } else if (stale) {
-      el.age.textContent = "STALE  " + age.toFixed(1) + "s";
+      el.age.textContent = "frozen " + age.toFixed(1) + "s";
       el.age.className = "age stale";
     } else {
       el.age.textContent = age.toFixed(1) + "s ago";
@@ -797,7 +1643,7 @@
     el.staleBanner.className = "stale-banner" + (stale && age != null ? " on" : "");
     el.source.textContent = state.connected ? (state.source === "kraken" ? "Kraken" : "Coinbase") : (state.source === "kraken" ? "Kraken…" : "Coinbase…");
     el.dot.className = "dot" + (stale ? (state.connected ? " stale" : " off") : "");
-    el.liveLabel.textContent = stale ? (state.connected ? "Stale" : "Connecting") : "Live";
+    el.liveLabel.textContent = stale ? (state.connected ? "Frozen" : "Connecting") : "Live";
 
     if (state.open24 > 0 && state.lastPx > 0) {
       var d24 = state.lastPx / state.open24 - 1;
@@ -806,25 +1652,26 @@
 
     var d = decide();
     var card = el.verdictCard;
+    var cw = confWord(d.confLvl);
     if (d.warm) {
       card.className = "verdict warm";
-      el.verdict.textContent = "WARMING UP";
+      el.verdict.textContent = "Still getting ready";
       el.confidence.textContent = "";
     } else if (d.lean > 0) {
       card.className = "verdict up";
-      el.verdict.textContent = "UP";
-      el.confidence.textContent = d.confLvl + " confidence" + (d.confPct != null ? " · " + d.confPct + "%" : "");
+      el.verdict.textContent = "Bitcoin is likely going UP";
+      el.confidence.textContent = cw ? (cw + " confidence") : "";
     } else if (d.lean < 0) {
       card.className = "verdict down";
-      el.verdict.textContent = "DOWN";
-      el.confidence.textContent = d.confLvl + " confidence" + (d.confPct != null ? " · " + d.confPct + "%" : "");
+      el.verdict.textContent = "Bitcoin is likely going DOWN";
+      el.confidence.textContent = cw ? (cw + " confidence") : "";
     } else {
-      card.className = "verdict none";
-      el.verdict.textContent = "NO CLEAR SIGNAL";
+      card.className = "verdict wait";
+      el.verdict.textContent = "No clear direction — wait";
       el.confidence.textContent = "";
     }
-    el.verdictNote.textContent = d.reason;
-    el.verdictWarn.textContent = d.warn || "";
+    el.verdictNote.textContent = plainReason(d);
+    el.verdictWarn.textContent = plainWarn(d);
 
     var html = "";
     for (var i = 0; i < d.signals.length; i++) {
@@ -855,6 +1702,9 @@
       el.regimeLabel.className = "spark-chg";
       el.regimeGrid.innerHTML = "";
     }
+    renderClues(d);
+    renderPressure();
+    renderChart();
     renderSpark();
   }
 
@@ -899,6 +1749,13 @@
       if (msg.open_24h) state.open24 = +msg.open_24h;
       if (msg.high_24h) state.high24 = +msg.high_24h;
       if (msg.low_24h) state.low24 = +msg.low_24h;
+      if (msg.best_bid_size != null && msg.best_ask_size != null) {
+        var bs = +msg.best_bid_size, az = +msg.best_ask_size;
+        if (isFinite(bs) && isFinite(az) && bs >= 0 && az >= 0 && (bs + az) > 0) {
+          state.bidSz = bs;
+          state.askSz = az;
+        }
+      }
     } else if (typ === "match") {
       // Coinbase `side` is the maker: maker sell => taker buy (aggressive buy)
       var p = +msg.price, q = +msg.size;
@@ -928,6 +1785,12 @@
       var px = +t.last;
       var ts = parseISO(t.timestamp) || nowSec();
       if (px > 0) { addTick(ts, px); markPrice(); }
+      var kBid = t.bid_qty != null ? +t.bid_qty : (t.bidQty != null ? +t.bidQty : NaN);
+      var kAsk = t.ask_qty != null ? +t.ask_qty : (t.askQty != null ? +t.askQty : NaN);
+      if (isFinite(kBid) && isFinite(kAsk) && kBid >= 0 && kAsk >= 0 && (kBid + kAsk) > 0) {
+        state.bidSz = kBid;
+        state.askSz = kAsk;
+      }
     } else if (ch === "trade" && data && data.length) {
       for (var i = 0; i < data.length; i++) {
         var tr = data[i];
@@ -992,7 +1855,8 @@
       var x = raw[i];
       if (!x || x.length < 5) continue;
       var t = +x[0], o = +x[3], h = +x[2], l = +x[1], c = +x[4];
-      if (t > 0 && c > 0) rows.push({ t: t, o: o, h: h, l: l, c: c });
+      var vol = x.length > 5 ? +x[5] : 0;
+      if (t > 0 && c > 0) rows.push({ t: t, o: o, h: h, l: l, c: c, v: vol > 0 ? vol : 0 });
     }
     rows.sort(function (a, b) { return a.t - b.t; });
     var out = [];
@@ -1078,6 +1942,7 @@
         }
       }
       state.seeded = !!(state.min1.length || state.hour.length);
+      seedChartSeries();
     } catch (e) {
       state.seeded = false;
     }
@@ -1120,6 +1985,28 @@
       signals: d.signals.map(function (s) { return { key: s.key, z: s.z, vote: s.vote, detail: s.detail }; })
     };
   };
+
+  if (el.tfToggle) {
+    el.tfToggle.addEventListener("click", function (ev) {
+      var btn = ev.target;
+      while (btn && btn !== el.tfToggle && !(btn.getAttribute && btn.getAttribute("data-tf"))) btn = btn.parentNode;
+      if (!btn || btn === el.tfToggle || !btn.getAttribute) return;
+      var tf = +btn.getAttribute("data-tf");
+      if (tf !== 10 && tf !== 60 && tf !== 300) return;
+      chartCtl.tf = tf;
+      chartCtl.lastSig = "";
+      chartCtl.lineKey = "";
+      chartCtl.needFit = true;
+      var buttons = el.tfToggle.getElementsByTagName("button");
+      for (var i = 0; i < buttons.length; i++) {
+        var on = +buttons[i].getAttribute("data-tf") === tf;
+        buttons[i].className = on ? "on" : "";
+        buttons[i].setAttribute("aria-pressed", on ? "true" : "false");
+      }
+      el.chartNote.textContent = chartNoteFor(tf);
+      renderChart();
+    });
+  }
 
   seed();
   connect();
