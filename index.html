@@ -1611,6 +1611,30 @@
     var host = document.getElementById("chart");
     if (host) host.innerHTML = "";
   }
+  function chartTimeLabel(time) {
+    var sec = typeof time === "number" ? time : null;
+    if (!(sec > 0)) return "";
+    try {
+      return new Date(sec * 1000).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true });
+    } catch (e) {
+      return "";
+    }
+  }
+  function chartTickLabel(time, tickType) {
+    if (tickType != null && tickType < 3) {
+      var sec = typeof time === "number" ? time : 0;
+      if (!(sec > 0)) return chartTimeLabel(time);
+      var d = new Date(sec * 1000);
+      try {
+        if (tickType === 0) return String(d.getFullYear());
+        if (tickType === 1) return d.toLocaleDateString(undefined, { month: "short" });
+        return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      } catch (e2) {
+        return chartTimeLabel(time);
+      }
+    }
+    return chartTimeLabel(time);
+  }
   function ensureLineChart() {
     if (chartCtl.chart && chartCtl.series) return true;
     var host = document.getElementById("chart");
@@ -1638,7 +1662,15 @@
       },
       grid: { vertLines: { color: "#1c2430" }, horzLines: { color: "#1c2430" } },
       rightPriceScale: { borderColor: "#2a3140" },
-      timeScale: { borderColor: "#2a3140", timeVisible: true, secondsVisible: false, rightOffset: 2, fixLeftEdge: true },
+      localization: { timeFormatter: chartTimeLabel },
+      timeScale: {
+        borderColor: "#2a3140",
+        timeVisible: true,
+        secondsVisible: false,
+        rightOffset: 2,
+        fixLeftEdge: true,
+        tickMarkFormatter: chartTickLabel
+      },
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true },
       handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
       kineticScroll: { touch: true, mouse: false }

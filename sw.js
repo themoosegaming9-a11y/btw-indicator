@@ -1,4 +1,4 @@
-var CACHE = "signal-shell-v4";
+var CACHE = "signal-shell-v5";
 var SHELL = [
   "./",
   "./index.html",
