@@ -1,4 +1,4 @@
-var CACHE = "signal-shell-v2";
+var CACHE = "signal-shell-v3";
 var SHELL = [
   "./",
   "./index.html",
@@ -24,6 +24,7 @@ self.addEventListener("activate", function (event) {
 
 self.addEventListener("fetch", function (event) {
   var url = new URL(event.request.url);
+  if (/kalshi\.com$/i.test(url.hostname)) return;
   var chartLib = url.href.indexOf("lightweight-charts") !== -1;
   if (url.origin !== self.location.origin && !chartLib) return;
   if (url.protocol === "ws:" || url.protocol === "wss:") return;
@@ -50,7 +51,10 @@ self.addEventListener("fetch", function (event) {
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
   var data = event.notification.data || {};
+  var target = typeof data.url === "string" ? data.url : "";
+  if (target.indexOf("https://kalshi.com/markets/") !== 0) target = "";
   event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (list) {
+    if (target) return self.clients.openWindow(target);
     var msg = { type: "open-market", coin: data.coin, tab: data.tab };
     if (list.length) {
       list[0].postMessage(msg);

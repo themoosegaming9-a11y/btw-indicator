@@ -399,6 +399,18 @@
     font: inherit; font-weight: 800; text-decoration: none;
   }
   .trade-btn.hot { background: rgba(179,136,255,0.18); border-color: rgba(179,136,255,0.6); color: #fff; }
+  a.trade-btn {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
+    padding: 10px 14px;
+    gap: 2px;
+  }
+  .trade-pick { font-size: 13px; font-weight: 800; color: #f2f4f7; }
+  .k-pickline { margin-top: 10px; font-size: 15px; font-weight: 800; }
   .chart-tools { display: flex; gap: 8px; flex-wrap: wrap; }
   .chart-tools button { margin-top: 0; }
   .chart-tools button.on { color: #0a0c10; background: var(--cyan); }
@@ -434,6 +446,8 @@
   .stat b { display: block; font-size: 1.15rem; }
   .trade-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
   .t-row { padding: 10px 12px; border-radius: 14px; background: rgba(10,12,16,0.4); border: 1px solid rgba(124,246,255,0.1); }
+  a.t-row { display: block; color: inherit; text-decoration: none; }
+  .t-pick { display: block; margin-top: 4px; font-size: 13px; font-weight: 800; color: var(--cyan); }
   .t-row .up { color: var(--up); }
   .t-row .down { color: var(--down); }
   .skel { height: 16px; border-radius: 8px; margin: 8px 0; background: linear-gradient(90deg, #161b24, #2a3140, #161b24); background-size: 200% 100%; animation: shimmer 1.1s linear infinite; }
@@ -2575,6 +2589,9 @@
       beatText: strike > 0 || (kind === "between" && strikeHi > 0) ? "" : "strike unavailable",
       sourceText: "CF Benchmarks BRTI, published by Kalshi",
       rawTitle: m.yes_sub_title || "",
+      yesSub: m.yes_sub_title || m.subtitle || "",
+      series: seriesFromTicker(m.series_ticker || m.event_ticker || m.ticker),
+      event: m.event_ticker || "",
       path: path
     };
   }
@@ -2879,8 +2896,73 @@
     }
     return ids;
   }
+  function seriesFromTicker(ticker) {
+    var s = String(ticker || "").trim();
+    var cut = s.indexOf("-");
+    if (cut > 0) s = s.slice(0, cut);
+    return s.replace(/[^A-Za-z0-9]/g, "");
+  }
   function kalshiTradeUrl(c) {
-    return "https://kalshi.com/markets/" + String(c && c.id || "").toLowerCase();
+    var series = "";
+    if (c && typeof c === "object") series = c.series || seriesFromTicker(c.event || c.id);
+    else series = seriesFromTicker(c);
+    series = String(series || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!series) return "https://kalshi.com/markets";
+    return "https://kalshi.com/markets/" + series;
+  }
+  function isUpDownMarket(c) {
+    if (!c) return false;
+    if (c.tab === "15m" || c.kind === "updown") return true;
+    return /15m$/i.test(String(c.series || seriesFromTicker(c.id) || ""));
+  }
+  function displayStrike(n) {
+    if (!(n > 0) || !isFinite(n)) return "";
+    var show = n;
+    var frac = n - Math.floor(n);
+    if (n >= 1 && (frac >= 0.9 || Math.abs(n - Math.round(n)) < 1e-6)) show = Math.round(n);
+    else if (n < 1) {
+      for (var d = 3; d <= 6; d++) {
+        var f = Math.pow(10, d);
+        var r = Math.round(n * f) / f;
+        if (Math.abs(n - r) <= Math.max(1e-8, n * 1e-5)) { show = r; break; }
+      }
+    }
+    if (show >= 20 && Math.abs(show - Math.round(show)) < 1e-6) return "$" + Math.round(show).toLocaleString("en-US");
+    return fmtPx(show);
+  }
+  function strikePhrase(c) {
+    var sub = String(c.yesSub || c.subtitle || "").trim();
+    var m = sub.match(/\$([0-9][0-9,]*(?:\.\d+)?)\s+or above/i);
+    if (m) return "Above $" + m[1].replace(/\.00$/, "");
+    m = sub.match(/^(above|below|at or below)\s+\$([0-9][0-9,]*(?:\.\d+)?)/i);
+    if (m) {
+      var word = m[1].toLowerCase() === "above" ? "Above" : (m[1].toLowerCase() === "below" ? "Below" : "At or below");
+      return word + " $" + m[2].replace(/\.00$/, "");
+    }
+    if (c.kind === "between" && c.strike > 0 && c.strikeHi > 0) return fmtPx(c.strike) + " – " + fmtPx(c.strikeHi);
+    if (c.strike > 0) {
+      var word = "Above";
+      if (c.yesDir === "DOWN" || (c.kind && String(c.kind).indexOf("less") === 0)) word = "At or below";
+      else if (c.path) word = "Touches";
+      return word + " " + displayStrike(c.strike);
+    }
+    if (sub) return sub;
+    return "this contract";
+  }
+  function contractPick(c, d) {
+    if (!c) return "Pick: this contract";
+    if (isUpDownMarket(c)) {
+      if (d && d.action !== "wait") {
+        if (d.dir === "DOWN" || d.contract === "NO") return "Pick: DOWN";
+        if (d.dir === "UP" || d.contract === "YES") return "Pick: UP";
+      }
+      return "Pick: UP or DOWN";
+    }
+    var name = strikePhrase(c);
+    var side = (d && d.action !== "wait" && (d.contract === "YES" || d.contract === "NO")) ? d.contract : "";
+    if (c.kind === "between" && side === "NO") return "Pick: Outside " + name + " · NO";
+    if (side) return "Pick: " + name + " · " + side;
+    return "Pick: " + name;
   }
 
   function panelHtml(pick, emptyNote) {
@@ -2936,7 +3018,8 @@
       explain = "UP wins if the settlement price is at or above the window-open price. DOWN wins if it is below. Source: " + c.sourceText + ".";
     }
     var pop = books.popUntil > Date.now() && books.popKey === (c.id + "|" + d.dir) ? " pop" : "";
-    var trade = '<a class="trade-btn' + (cls === "wait" ? "" : " hot") + '" href="' + escHtml(kalshiTradeUrl(c)) + '" target="_blank" rel="noopener noreferrer">Trade on Kalshi</a>';
+    var phrase = contractPick(c, d);
+    var trade = '<a class="trade-btn' + (cls === "wait" ? "" : " hot") + '" href="' + escHtml(kalshiTradeUrl(c)) + '" target="_blank" rel="noopener">Trade on Kalshi<span class="trade-pick">' + escHtml(phrase) + "</span></a>";
     return '<div class="k-panel">' +
       '<div class="k-banner ' + cls + pop + '"><div class="k-banner-title">' + escHtml(d.title) + '</div><div class="k-banner-sub">' + escHtml(d.reason) + "</div></div>" +
       '<div class="k-venue">' + escHtml(books.coin) + " · closes " + escHtml(fmtCountdown(c.closeMs)) + "</div>" +
@@ -2944,6 +3027,7 @@
       '<div class="k-beat">' + escHtml(beat) + "</div>" +
       (vs ? '<div class="k-vs">' + escHtml(vs) + "</div>" : "") +
       '<div class="k-meta">' + escHtml(explain) + "</div>" +
+      '<div class="k-pickline">' + escHtml(phrase) + "</div>" +
       trade +
       '<details class="mini"><summary>Quotes</summary>' +
       '<div class="k-quotes">' +
@@ -3011,7 +3095,7 @@
         if (!pick || !pick.d || pick.d.action === "wait" || (pick.d.dir !== "UP" && pick.d.dir !== "DOWN")) continue;
         var emo = pick.d.dir === "DOWN" ? "📉" : "🚀";
         var key = pick.c.id + "|" + pick.d.dir;
-        buys.push({ text: emo + " " + coin.id + " " + tab.label, coin: coin.id, tab: tab.id, key: key, closeMs: pick.c.closeMs, dir: pick.d.dir, emo: emo, beat: pick.c.strike > 0 ? fmtPx(pick.c.strike) : "the strike", when: fmtEt(pick.c.closeMs), strength: pick.d.strength || pick.d.reason, ask: fmtCents(pick.d.ask) });
+        buys.push({ text: emo + " " + coin.id + " " + tab.label, coin: coin.id, tab: tab.id, key: key, closeMs: pick.c.closeMs, dir: pick.d.dir, emo: emo, beat: pick.c.strike > 0 ? fmtPx(pick.c.strike) : "the strike", when: fmtEt(pick.c.closeMs), strength: pick.d.strength || pick.d.reason, ask: fmtCents(pick.d.ask), url: kalshiTradeUrl(pick.c), pick: contractPick(pick.c, pick.d) });
         buyKeys[key] = true;
       }
     }
@@ -3073,9 +3157,9 @@
         books.notified[nb.key] = nb.closeMs;
         (function (item) {
           var nTitle = item.emo + " BUY " + item.dir + ": " + item.coin + " " + item.tab + " at " + item.ask;
-          var nBody = "Price to beat " + item.beat + " · " + item.when + " close · " + item.strength;
+          var nBody = item.pick + " · Price to beat " + item.beat + " · " + item.when + " close · " + item.strength;
           navigator.serviceWorker.ready.then(function (reg) {
-            return reg.showNotification(nTitle, { body: nBody, icon: "./icons/icon-192.png", tag: item.key, data: { coin: item.coin, tab: item.tab } });
+            return reg.showNotification(nTitle, { body: nBody, icon: "./icons/icon-192.png", tag: item.key, data: { coin: item.coin, tab: item.tab, url: item.url, pick: item.pick } });
           }).catch(function () {});
         })(nb);
       }
@@ -3086,7 +3170,7 @@
       summary: ui.summary.textContent,
       routes: { kalshi: books.kalshiRoute },
       errors: { kalshi: books.kalshiErr },
-      kalshi: kPick ? { id: kPick.c.id, strike: kPick.c.strike, title: kPick.c.title, banner: kPick.d.title, reason: kPick.d.reason, fair: kPick.d.fair, yesAsk: kPick.c.bookAt ? kPick.c.bookYesAsk : kPick.c.yesAsk, noAsk: kPick.c.bookAt ? kPick.c.bookNoAsk : kPick.c.noAsk, book: !!kPick.c.bookAt } : null
+      kalshi: kPick ? { id: kPick.c.id, series: kPick.c.series, url: kalshiTradeUrl(kPick.c), pick: contractPick(kPick.c, kPick.d), strike: kPick.c.strike, title: kPick.c.title, banner: kPick.d.title, reason: kPick.d.reason, fair: kPick.d.fair, yesAsk: kPick.c.bookAt ? kPick.c.bookYesAsk : kPick.c.yesAsk, noAsk: kPick.c.bookAt ? kPick.c.bookNoAsk : kPick.c.noAsk, book: !!kPick.c.bookAt } : null
     };
     refreshNearBooks();
   }
@@ -3234,6 +3318,20 @@
       if (chartCtl.vwap) chartCtl.vwap.applyOptions({ visible: chartCtl.showVwap });
     });
   }
+  function isStandaloneApp() {
+    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
+  }
+  document.addEventListener("click", function (ev) {
+    if (!isStandaloneApp()) return;
+    var a = ev.target;
+    while (a && a !== document && (!a.tagName || a.tagName !== "A")) a = a.parentNode;
+    if (!a || !a.getAttribute) return;
+    var href = a.getAttribute("href") || "";
+    if (href.indexOf("https://kalshi.com/markets/") !== 0) return;
+    ev.preventDefault();
+    var opened = window.open(href, "_blank", "noopener");
+    if (opened) opened.opener = null;
+  });
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(function () {});
     navigator.serviceWorker.addEventListener("message", function (ev) {
@@ -3352,6 +3450,26 @@
     }
     return rows;
   }
+  function tradePickText(tr) {
+    var mkt = String(tr && tr.mkt || "");
+    var series = seriesFromTicker(mkt);
+    var side = String(tr && tr.side || "").toLowerCase();
+    if (/15m$/i.test(series)) return side === "no" ? "Pick: DOWN" : "Pick: UP";
+    var strike = tr && +tr.strike > 0 ? +tr.strike : null;
+    if (!(strike > 0)) {
+      var tm = mkt.match(/-T([0-9]+(?:\.[0-9]+)?)$/i);
+      if (tm) strike = parseFloat(tm[1]);
+    }
+    var sideWord = side === "no" ? "NO" : "YES";
+    if (strike > 0) return "Pick: Above " + displayStrike(strike) + " · " + sideWord;
+    return "Pick: " + sideWord;
+  }
+  function tradeLink(inner, tr, cls) {
+    var href = kalshiTradeUrl(tr && tr.mkt);
+    var pick = tradePickText(tr || {});
+    return '<a class="t-row ' + cls + '" href="' + escHtml(href) + '" target="_blank" rel="noopener">' +
+      escHtml(inner) + '<span class="t-pick">' + escHtml(pick) + "</span></a>";
+  }
   function tradeLabel(group) {
     var tr = group.exit || group.entry;
     var coin = coinFromMkt(tr.mkt);
@@ -3408,7 +3526,7 @@
     else {
       for (var i = 0; i < open.length; i++) {
         var o = open[i];
-        openHtml += '<div class="t-row">' + escHtml(coinFromMkt(o.mkt) + " " + (o.side === "no" ? "DOWN" : "UP") + " · " + (o.count || "") + " @ " + Math.round((+o.entry_px) * 100) + "¢") + "</div>";
+        openHtml += tradeLink(coinFromMkt(o.mkt) + " " + (o.side === "no" ? "DOWN" : "UP") + " · " + (o.count || o.n || "") + " @ " + Math.round((+o.entry_px) * 100) + "¢", o, "");
       }
     }
     var groups = tradeGroups(data.trades || []).slice(0, 24);
@@ -3417,7 +3535,8 @@
       var label = tradeLabel(groups[g]);
       var pnl = groups[g].exit && groups[g].exit.pnl;
       var cls = pnl > 0 ? "up" : "down";
-      list += '<div class="t-row ' + cls + '">' + escHtml(label) + "</div>";
+      var rowTrade = groups[g].exit || groups[g].entry;
+      list += tradeLink(label, rowTrade, cls);
     }
     root.innerHTML =
       '<section class="card bal-card">' +
