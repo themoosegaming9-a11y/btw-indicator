@@ -7,8 +7,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0c10">
+<meta name="apple-mobile-web-app-title" content="BTC Signal">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <meta name="color-scheme" content="dark">
-<title>BTC live indicator</title>
+<title>BTC Indicator</title>
 <style>
   :root {
     --bg: #0a0c10;
@@ -18,10 +21,12 @@
     --text: #f2f4f7;
     --muted: #8b93a1;
     --dim: #5d6573;
-    --up: #3dd68c;
-    --up-bg: rgba(61, 214, 140, 0.12);
-    --down: #ff5b6e;
-    --down-bg: rgba(255, 91, 110, 0.12);
+    --up: #3dff9a;
+    --up-bg: rgba(61, 255, 154, 0.14);
+    --down: #ff3d8a;
+    --down-bg: rgba(255, 61, 138, 0.14);
+    --cyan: #7cf6ff;
+    --violet: #b388ff;
     --neutral: #e7c25a;
     --neutral-bg: rgba(231, 194, 90, 0.12);
     --stale: #ff8a4a;
@@ -31,7 +36,11 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
     margin: 0; padding: 0;
-    background: var(--bg); color: var(--text);
+    background:
+      radial-gradient(900px 420px at 10% -10%, rgba(124, 92, 255, 0.22), transparent 55%),
+      radial-gradient(700px 380px at 110% 8%, rgba(0, 229, 255, 0.14), transparent 50%),
+      var(--bg);
+    color: var(--text);
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     min-height: 100%;
   }
@@ -44,7 +53,7 @@
     display: flex; align-items: baseline; justify-content: space-between;
     gap: 12px; margin-bottom: 6px;
   }
-  .brand { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .brand { font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyan); font-weight: 800; text-shadow: 0 0 18px rgba(124, 246, 255, 0.45); }
   .live {
     display: inline-flex; align-items: center; gap: 7px;
     font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em;
@@ -126,9 +135,11 @@
   .v-note { margin-top: 6px; font-size: 13px; color: var(--muted); line-height: 1.35; }
   .v-warn { margin-top: 8px; font-size: 13px; color: var(--stale); font-weight: 650; }
   .card {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 16px;
+    background: rgba(20, 24, 32, 0.72);
+    border: 1px solid rgba(124, 246, 255, 0.16);
+    box-shadow: 0 0 0 1px rgba(179, 136, 255, 0.05), 0 10px 40px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+    border-radius: 18px;
     padding: 14px 14px 12px;
     margin: 12px 0;
   }
@@ -219,9 +230,13 @@
     border-color: rgba(61,214,140,0.5);
     background: var(--up-bg);
   }
+  .coins { overflow-x: auto; flex-wrap: nowrap; margin: 8px 0 4px; }
+  .coins button { flex: 0 0 auto; }
   .chart-wrap {
     width: 100%;
-    height: 320px;
+    height: 58vh;
+    min-height: 320px;
+    touch-action: none;
     border-radius: 12px;
     overflow: hidden;
     background: #10141b;
@@ -342,8 +357,13 @@
     border: 1px solid var(--line);
     background: #12161c;
   }
-  .k-banner.up { background: linear-gradient(180deg, var(--up-bg), var(--card)); border-color: rgba(61,214,140,0.35); }
-  .k-banner.down { background: linear-gradient(180deg, var(--down-bg), var(--card)); border-color: rgba(255,91,110,0.35); }
+  .k-banner.up { background: linear-gradient(180deg, rgba(61,255,154,0.16), rgba(20,24,32,0.9)); border-color: rgba(61,255,154,0.55); box-shadow: 0 0 28px rgba(61,255,154,0.28); animation: glowUp 1.8s ease-in-out infinite; }
+  .k-banner.down { background: linear-gradient(180deg, rgba(255,61,138,0.16), rgba(20,24,32,0.9)); border-color: rgba(255,61,138,0.55); box-shadow: 0 0 28px rgba(255,61,138,0.28); animation: glowDown 1.8s ease-in-out infinite; }
+  @keyframes glowUp { 50% { box-shadow: 0 0 42px rgba(61,255,154,0.5); } }
+  @keyframes glowDown { 50% { box-shadow: 0 0 42px rgba(255,61,138,0.5); } }
+  .k-banner.pop { animation: popIn 0.45s ease; }
+  @keyframes popIn { from { transform: scale(0.96); } to { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .k-banner.up, .k-banner.down, .k-banner.pop { animation: none; } }
   .k-banner .k-banner-title {
     font-size: clamp(1.45rem, 6.4vw, 2rem);
     font-weight: 800;
@@ -371,9 +391,58 @@
   }
   .k-toggle input { width: 20px; height: 20px; }
   .k-disclaimer { margin: 4px 0 0; font-size: 12px; color: var(--dim); }
+  .trade-btn, .install-btn, .chart-tools button {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 44px; margin-top: 10px; padding: 0 14px;
+    border-radius: 999px; border: 1px solid rgba(124,246,255,0.35);
+    background: rgba(124,246,255,0.08); color: var(--cyan);
+    font: inherit; font-weight: 800; text-decoration: none;
+  }
+  .trade-btn.hot { background: rgba(179,136,255,0.18); border-color: rgba(179,136,255,0.6); color: #fff; }
+  .chart-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chart-tools button { margin-top: 0; }
+  .chart-tools button.on { color: #0a0c10; background: var(--cyan); }
+  .chart-tip { display: none; margin: 6px 0; font-size: 12px; color: var(--cyan); font-variant-numeric: tabular-nums; }
+  .chart-tip.on { display: block; }
+  .sum-buy { margin: 4px 6px 0 0; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 800; min-height: 36px; }
+  #chartCard.full { position: fixed; inset: 0; z-index: 30; margin: 0; border-radius: 0; overflow: auto; padding: max(12px, env(safe-area-inset-top)) 12px 12px; }
+  #chartCard.full .chart-wrap { height: calc(100vh - 150px); }
+  body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .app-view { display: none; }
+  .app-view.on { display: block; animation: viewIn 0.22s ease; }
+  @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+    display: flex; gap: 8px;
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
+    background: rgba(8, 10, 14, 0.92);
+    border-top: 1px solid rgba(124, 246, 255, 0.22);
+    backdrop-filter: blur(16px);
+  }
+  .tabbar button {
+    flex: 1; min-height: 48px; border-radius: 14px; border: 1px solid transparent;
+    background: transparent; color: var(--muted); font: inherit; font-weight: 800;
+  }
+  .tabbar button.on { color: #041016; background: linear-gradient(90deg, var(--cyan), var(--violet)); border-color: transparent; }
+  .bal-card { text-align: center; padding: 8px 4px 4px; }
+  .bal-num { font-variant-numeric: tabular-nums; font-size: clamp(2.4rem, 12vw, 3.4rem); font-weight: 800; letter-spacing: -0.04em; }
+  .bal-num.up { color: var(--up); }
+  .bal-num.down { color: var(--down); }
+  .bal-sub { color: var(--muted); margin-top: 4px; }
+  .stat-row { display: flex; gap: 8px; margin: 12px 0; }
+  .stat { flex: 1; background: rgba(10,12,16,0.45); border-radius: 14px; padding: 10px; text-align: center; }
+  .stat b { display: block; font-size: 1.15rem; }
+  .trade-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .t-row { padding: 10px 12px; border-radius: 14px; background: rgba(10,12,16,0.4); border: 1px solid rgba(124,246,255,0.1); }
+  .t-row .up { color: var(--up); }
+  .t-row .down { color: var(--down); }
+  .skel { height: 16px; border-radius: 8px; margin: 8px 0; background: linear-gradient(90deg, #161b24, #2a3140, #161b24); background-size: 200% 100%; animation: shimmer 1.1s linear infinite; }
+  .skel.lg { height: 54px; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  @media (prefers-reduced-motion: reduce) { .app-view.on, .skel { animation: none; } }
   @media (max-width: 640px) {
     body { padding-left: 10px; padding-right: 10px; max-width: none; }
-    .chart-wrap { height: 68vw; min-height: 240px; max-height: 380px; }
+    .chart-wrap { height: 58vh; min-height: 300px; max-height: none; }
     .chart-bleed {
       width: calc(100% + 50px);
       margin-left: -25px;
@@ -385,22 +454,18 @@
 <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
+<div id="viewSignals" class="app-view on">
   <div class="top">
-    <div class="brand">Bitcoin</div>
+    <div class="brand">🧠 Signal</div>
     <div class="live"><span id="dot" class="dot off"></span><span id="liveLabel">Connecting</span></div>
   </div>
+  <div class="coins tf" id="coinRow" role="group" aria-label="Coin"></div>
   <div class="price" id="price">—</div>
   <div class="meta">
     <span class="age" id="age">waiting for feed</span>
     <span class="chip" id="source">—</span>
     <span class="chip" id="chg24">24h —</span>
   </div>
-  <section class="verdict warm" id="verdictCard">
-    <div class="v-label" id="verdict">Connecting…</div>
-    <div class="v-conf" id="confidence"></div>
-    <div class="v-note" id="verdictNote">Loading the live price.</div>
-    <div class="v-warn" id="verdictWarn"></div>
-  </section>
   <div class="stale-banner" id="staleBanner">Price looks frozen (older than 5 seconds), so the call above may be wrong.</div>
 
   <section class="card" id="bookCard">
@@ -408,19 +473,17 @@
       <h2>Trade Bitcoin</h2>
       <div class="chip" id="bookRoute">—</div>
     </div>
-    <div class="k-summary" id="bookSummary">Checking Kalshi and Polymarket…</div>
-    <div class="tf" id="venueToggle" role="group" aria-label="Venue">
-      <button type="button" data-venue="kalshi" aria-pressed="false">Kalshi</button>
-      <button type="button" data-venue="poly" aria-pressed="false">Polymarket</button>
-      <button type="button" data-venue="both" class="on" aria-pressed="true">Both</button>
-    </div>
+    <div class="k-summary" id="bookSummary">Checking Kalshi…</div>
     <div class="tf k-tabs" id="bookTabs" role="group" aria-label="Market"></div>
     <div class="k-panels" id="bookPanels"></div>
+    <button type="button" id="installBtn" class="install-btn" hidden>Install app</button>
     <label class="k-toggle"><input type="checkbox" id="bookBeep"> Beep and vibrate when a new buy appears</label>
+    <label class="k-toggle"><input type="checkbox" id="bookNotify"> Notify me</label>
+    <p class="k-disclaimer" id="notifyHint">Notifications stay on this device while the app is open or in the background. No push server. On iPhone, add the app to your Home Screen first.</p>
     <p class="k-disclaimer">Not financial advice; signals can be wrong.</p>
   </section>
 
-  <section class="card">
+  <section class="card" id="chartCard">
     <div class="spark-head chart-head">
       <h2>Live chart</h2>
       <div class="tf" id="tfToggle" role="group" aria-label="Candle size">
@@ -429,8 +492,14 @@
         <button type="button" data-tf="300" aria-pressed="false">5m</button>
       </div>
     </div>
-    <p class="explain">Green candles finished higher than they started. Red finished lower. The gold line is the average price paid (VWAP). Dashed lines are a ceiling where rallies stalled and a floor where dips found buyers.</p>
-    <div id="chart" class="chart-wrap chart-bleed" role="img" aria-label="Live Bitcoin candlestick chart"></div>
+    <div class="chart-tools">
+      <button type="button" id="chartReset">Reset</button>
+      <button type="button" id="vwapToggle" class="on" aria-pressed="true">VWAP</button>
+      <button type="button" id="chartFull">Full screen</button>
+    </div>
+    <p class="explain chart-note" id="chartCaption">Green candles closed higher. Red closed lower.</p>
+    <div id="chartTip" class="chart-tip"></div>
+    <div id="chart" class="chart-wrap chart-bleed" role="img" aria-label="Live candlestick chart"></div>
     <div class="legend">
       <span><i class="sw up"></i>Up</span>
       <span><i class="sw down"></i>Down</span>
@@ -453,24 +522,22 @@
     <div class="book" id="bookLine"></div>
   </section>
 
-  <section class="card">
+  <details class="details">
+    <summary>Details</summary>
+    <section class="verdict warm" id="verdictCard">
+      <div class="v-label" id="verdict">Connecting…</div>
+      <div class="v-conf" id="confidence"></div>
+      <div class="v-note" id="verdictNote">Loading the live price.</div>
+      <div class="v-warn" id="verdictWarn"></div>
+    </section>
     <div class="spark-head">
       <h2>Last 15 minutes</h2>
       <div class="spark-chg" id="sparkChg">—</div>
     </div>
-    <p class="explain">A simple line of where the price has been for the last 15 minutes.</p>
     <svg class="spark" id="spark" viewBox="0 0 300 84" preserveAspectRatio="none" aria-hidden="true"></svg>
-  </section>
-
-  <section class="card">
     <h2>Clues</h2>
-    <p class="explain">Each row is one clue behind the call above. Rising helps an up call, falling helps a down call. The raw numbers sit under Details.</p>
     <div class="signals" id="clues"></div>
-  </section>
-
-  <details class="details">
-    <summary>Details</summary>
-    <p class="explain">Jargon and raw numbers for the same clues. You can ignore this and just use the call at the top.</p>
+    <p class="explain">Jargon and raw numbers. The buy call at the top is the one to act on.</p>
     <h2>Signals</h2>
     <div class="signals" id="signals"></div>
     <div class="spark-head regime-head">
@@ -487,6 +554,18 @@
     and multi-timeframe regime math. Moves inside normal noise, or signals that disagree, show as
     <strong style="color:var(--muted)">No clear direction — wait</strong>. Not financial advice.
   </p>
+</div>
+
+<section id="viewTrades" class="app-view" aria-label="My Trades">
+  <div class="top"><div class="brand">🧠 My trades</div></div>
+  <div id="tradesRoot">
+    <div class="card"><div class="skel lg"></div><div class="skel"></div><div class="skel"></div></div>
+  </div>
+</section>
+<nav class="tabbar" role="tablist" aria-label="App">
+  <button type="button" data-appview="signals" class="on" role="tab" aria-selected="true">Signals</button>
+  <button type="button" data-appview="trades" role="tab" aria-selected="false">My Trades</button>
+</nav>
 
 <script>
 (function () {
@@ -590,7 +669,8 @@
 
   function fmtPx(p) {
     if (p == null || !isFinite(p)) return "—";
-    return "$" + p.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var maxDigits = p >= 20 ? 2 : (p >= 1 ? 3 : 6);
+    return "$" + p.toLocaleString("en-US", { minimumFractionDigits: Math.min(2, maxDigits), maximumFractionDigits: maxDigits });
   }
   function fmtPct(x, digits) {
     if (x == null || !isFinite(x)) return "—";
@@ -1313,17 +1393,13 @@
       near.sort(function (a, b) {
         return Math.abs(a.price - px) / Math.sqrt(a.count) - Math.abs(b.price - px) / Math.sqrt(b.count);
       });
-      return near.slice(0, 2);
+      return near.slice(0, 1);
     }
     var lines = [];
     var res = choose(highs, true);
     var sup = choose(lows, false);
-    for (var r = 0; r < res.length; r++) {
-      lines.push({ price: res[r].price, color: "#ff5b6e", title: r === 0 ? "Resistance (ceiling)" : "Resistance" });
-    }
-    for (var u = 0; u < sup.length; u++) {
-      lines.push({ price: sup[u].price, color: "#6cb6ff", title: u === 0 ? "Support (floor)" : "Support" });
-    }
+    if (res[0]) lines.push({ price: res[0].price, color: "#ff4d8d", title: "Ceiling " + fmtPx(res[0].price) });
+    if (sup[0]) lines.push({ price: sup[0].price, color: "#3dd68c", title: "Floor " + fmtPx(sup[0].price) });
     return lines;
   }
 
@@ -1390,13 +1466,13 @@
         horzLines: { color: "#1e2530" }
       },
       rightPriceScale: { borderColor: "#2a3140" },
-      timeScale: { borderColor: "#2a3140", timeVisible: true, secondsVisible: true, rightOffset: 2 },
+      timeScale: { borderColor: "#2a3140", timeVisible: true, secondsVisible: true, rightOffset: 8, minBarSpacing: 6, barSpacing: 10 },
       crosshair: {
-        vertLine: { color: "#5d6573", labelBackgroundColor: "#1a1f28" },
-        horzLine: { color: "#5d6573", labelBackgroundColor: "#1a1f28" }
+        vertLine: { color: "#7cf6ff", labelBackgroundColor: "#1a1f28" },
+        horzLine: { color: "#7cf6ff", width: 1, labelBackgroundColor: "#1a1f28" }
       },
-      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
-      handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true }
+      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true },
+      handleScale: { axisPressedMouseMove: { time: true, price: true }, mouseWheel: true, pinch: true }
     });
     chartCtl.chart = chart;
     chartCtl.candles = chart.addCandlestickSeries({
@@ -1408,22 +1484,43 @@
       wickDownColor: "#ff5b6e",
       priceLineColor: "#f2f4f7"
     });
-    chartCtl.candles.priceScale().applyOptions({ scaleMargins: { top: 0.08, bottom: 0.22 } });
+    chartCtl.candles.priceScale().applyOptions({ scaleMargins: { top: 0.08, bottom: 0.28 } });
     chartCtl.volume = chart.addHistogramSeries({
       priceFormat: { type: "volume" },
       priceScaleId: "vol",
       priceLineVisible: false,
       lastValueVisible: false
     });
-    chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.82, bottom: 0 }, visible: false });
+    chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.78, bottom: 0 }, visible: false });
     chartCtl.vwap = chart.addLineSeries({
-      color: "#e7c25a",
-      lineWidth: 2,
+      color: "rgba(231,194,90,0.85)",
+      lineWidth: 1,
       priceLineVisible: false,
-      lastValueVisible: true,
+      lastValueVisible: false,
       title: "VWAP",
-      crosshairMarkerVisible: false
+      crosshairMarkerVisible: false,
+      visible: chartCtl.showVwap !== false
     });
+    chart.subscribeCrosshairMove(function (param) {
+      var tip = document.getElementById("chartTip");
+      if (!tip) return;
+      if (!param || !param.time || !param.seriesData || !chartCtl.candles) {
+        tip.className = "chart-tip";
+        return;
+      }
+      var bar = param.seriesData.get(chartCtl.candles);
+      if (!bar) { tip.className = "chart-tip"; return; }
+      var when = typeof param.time === "number" ? new Date(param.time * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" }) : String(param.time);
+      tip.textContent = when + "  O " + fmtPx(bar.open) + "  H " + fmtPx(bar.high) + "  L " + fmtPx(bar.low) + "  C " + fmtPx(bar.close);
+      tip.className = "chart-tip on";
+    });
+    var lastTap = 0;
+    host.addEventListener("dblclick", function () { chartCtl.needFit = true; renderChart(); });
+    host.addEventListener("touchend", function () {
+      var now = Date.now();
+      if (now - lastTap < 280) { chartCtl.needFit = true; renderChart(); }
+      lastTap = now;
+    }, { passive: true });
     if (typeof ResizeObserver === "function") {
       var ro = new ResizeObserver(function () { sizeTV(); });
       ro.observe(host);
@@ -1461,9 +1558,9 @@
   }
 
   function showRecent(total) {
-    var n = chartCtl.tf === 10 ? 36 : (chartCtl.tf === 300 ? 48 : 60);
+    var n = 50;
     var from = Math.max(-0.5, total - n);
-    try { chartCtl.chart.timeScale().setVisibleLogicalRange({ from: from, to: total + 1.5 }); } catch (e) {}
+    try { chartCtl.chart.timeScale().setVisibleLogicalRange({ from: from, to: total + 8 }); } catch (e) {}
   }
 
   function pinnedToEnd(total) {
@@ -1665,7 +1762,39 @@
       chartCtl.volume.update(vol[vol.length - 1]);
       chartCtl.vwap.update(maPts[maPts.length - 1]);
     }
+    var beatPx = null;
+    try {
+      var mkNow = coinMarkets(books.coin);
+      var openList = (mkNow && mkNow[books.tab]) || [];
+      var picked = chooseContract(openList, state.lastPx, bookSigma(), bookFresh());
+      if (picked && picked.c.strike > 0) beatPx = picked.c.strike;
+    } catch (eBeat) {}
+    if (beatPx) lines.push({ price: beatPx, color: "#7cf6ff", title: "Price to beat" });
+    if (chartCtl.vwap) chartCtl.vwap.applyOptions({ visible: chartCtl.showVwap !== false });
     syncLines(lines);
+    updateChartCaption(beatPx, lines);
+  }
+
+  function updateChartCaption(strike, lines) {
+    var cap = document.getElementById("chartCaption");
+    if (!cap) return;
+    var px = state.lastPx;
+    if (!(px > 0)) { cap.textContent = "Waiting for a live price."; return; }
+    var ceil = null;
+    var floor = null;
+    for (var i = 0; i < lines.length; i++) {
+      if (lines[i].title.indexOf("Ceiling") === 0) ceil = lines[i].price;
+      if (lines[i].title.indexOf("Floor") === 0) floor = lines[i].price;
+    }
+    if (!(strike > 0)) {
+      cap.textContent = ceil ? ("Price is pushing toward the ceiling at " + fmtPx(ceil) + ".") : "Green candles closed up. Red candles closed down.";
+      return;
+    }
+    var side = px >= strike ? "above" : "below";
+    var extra = "";
+    if (ceil && px < ceil) extra = " and pushing toward the ceiling at " + fmtPx(ceil);
+    else if (floor && side === "below") extra = " with a floor near " + fmtPx(floor);
+    cap.textContent = "Price is " + side + " the line to beat" + extra + ".";
   }
 
   function chartNoteFor(tf) {
@@ -1846,6 +1975,9 @@
     if (typ === "ticker") {
       var px = +msg.price;
       var ts = parseISO(msg.time) || nowSec();
+      var coinId = coinFromProduct(msg.product_id);
+      if (px > 0 && coinId) noteCoinPx(coinId, px, ts);
+      if (coinId && coinId !== books.coin) return;
       if (px > 0) { addTick(ts, px); markPrice(); }
       if (msg.open_24h) state.open24 = +msg.open_24h;
       if (msg.high_24h) state.high24 = +msg.high_24h;
@@ -1858,6 +1990,8 @@
         }
       }
     } else if (typ === "match") {
+      var matchCoin = coinFromProduct(msg.product_id);
+      if (matchCoin && matchCoin !== books.coin) return;
       // Coinbase `side` is the maker: maker sell => taker buy (aggressive buy)
       var p = +msg.price, q = +msg.size;
       var ts2 = parseISO(msg.time) || nowSec();
@@ -1885,6 +2019,9 @@
       var t = data[0];
       var px = +t.last;
       var ts = parseISO(t.timestamp) || nowSec();
+      var krCoin = coinFromKraken(t.symbol);
+      if (px > 0 && krCoin) noteCoinPx(krCoin, px, ts);
+      if (krCoin && krCoin !== books.coin) return;
       if (px > 0) { addTick(ts, px); markPrice(); }
       var kBid = t.bid_qty != null ? +t.bid_qty : (t.bidQty != null ? +t.bidQty : NaN);
       var kAsk = t.ask_qty != null ? +t.ask_qty : (t.askQty != null ? +t.askQty : NaN);
@@ -1897,6 +2034,9 @@
         var tr = data[i];
         var p = +tr.price, q = +tr.qty;
         var ts2 = parseISO(tr.timestamp) || nowSec();
+        var trCoin = coinFromKraken(tr.symbol);
+        if (p > 0 && trCoin) noteCoinPx(trCoin, p, ts2);
+        if (trCoin && trCoin !== books.coin) continue;
         // Kraken v2 `side` is the taker side
         if (p > 0) { addTrade(ts2, p, q, tr.side === "buy"); markPrice(); }
       }
@@ -1918,12 +2058,12 @@
       if (use === "coinbase") {
         ws.send(JSON.stringify({
           type: "subscribe",
-          product_ids: ["BTC-USD"],
+          product_ids: COINS.map(function (c) { return c.cb; }),
           channels: ["ticker", "matches", "heartbeat"]
         }));
       } else {
-        ws.send(JSON.stringify({ method: "subscribe", params: { channel: "ticker", symbol: ["BTC/USD"] } }));
-        ws.send(JSON.stringify({ method: "subscribe", params: { channel: "trade", symbol: ["BTC/USD"] } }));
+        ws.send(JSON.stringify({ method: "subscribe", params: { channel: "ticker", symbol: COINS.map(function (c) { return c.kr; }) } }));
+        ws.send(JSON.stringify({ method: "subscribe", params: { channel: "trade", symbol: COINS.map(function (c) { return c.kr; }) } }));
       }
     };
     ws.onmessage = function (ev) {
@@ -2006,7 +2146,7 @@
   }
 
   async function fetchCandles(gran) {
-    var r = await fetch(CB_REST + "?granularity=" + gran, { cache: "no-store" });
+    var r = await fetch("https://api.exchange.coinbase.com/products/" + activeProduct() + "/candles?granularity=" + gran, { cache: "no-store" });
     if (!r.ok) throw new Error("candles " + gran + " " + r.status);
     return parseCBCandles(await r.json());
   }
@@ -2060,43 +2200,101 @@
     }
   });
 
-  // ----- Kalshi + Polymarket books -----
+  // ----- Kalshi books -----
   var BOOK_TABS = [
-    { id: "5m", label: "5m" },
     { id: "15m", label: "15m" },
     { id: "1h", label: "1h" },
-    { id: "4h", label: "4h" },
     { id: "range", label: "Range" },
-    { id: "day", label: "Daily" },
-    { id: "above", label: "Above" },
+    { id: "day", label: "Day" },
     { id: "month", label: "Month" },
     { id: "year", label: "Year" }
   ];
-  var KALSHI_TABS = [
-    { id: "15m", tickers: ["KXBTC15M"] },
-    { id: "1h", tickers: ["KXBTCD"] },
-    { id: "range", tickers: ["KXBTC"] },
-    { id: "day", tickers: ["BTCD", "BTC", "KXBTCMAXD"] },
-    { id: "month", tickers: ["KXBTCMINMON", "KXBTCMAXMON"] },
-    { id: "year", tickers: ["KXBTCY", "KXBTCMINY", "KXBTCMAXY", "KXBTC2026200", "KXBTCPRICE"] }
+  var COINS = [
+    { id: "BTC", name: "Bitcoin", cb: "BTC-USD", kr: "BTC/USD", tabs: { "15m": ["KXBTC15M"], "1h": ["KXBTCD"], "range": ["KXBTC"], "month": ["KXBTCMAXMON", "KXBTCMINMON"], "year": ["KXBTCY", "KXBTCMAXY", "KXBTCMINY", "KXBTC2026200", "KXBTCPRICE"] } },
+    { id: "ETH", name: "Ether", cb: "ETH-USD", kr: "ETH/USD", tabs: { "15m": ["KXETH15M"], "1h": ["KXETHD"], "range": ["KXETH"], "month": ["KXETHMAXMON", "KXETHMINMON"], "year": ["KXETHY", "KXETHMAXY", "KXETHMINY"] } },
+    { id: "SOL", name: "Solana", cb: "SOL-USD", kr: "SOL/USD", tabs: { "15m": ["KXSOL15M"], "1h": ["KXSOLD"], "range": ["KXSOLE"], "month": ["KXSOLMAXMON", "KXSOLMINMON"], "year": ["KXSOLMAXY", "KXSOLMINY", "KXSOLD26"] } },
+    { id: "XRP", name: "XRP", cb: "XRP-USD", kr: "XRP/USD", tabs: { "15m": ["KXXRP15M"], "1h": ["KXXRPD"], "range": ["KXXRP"], "month": ["KXXRPMAXMON", "KXXRPMINMON"], "year": ["KXXRPY", "KXXRPMAXY", "KXXRPMINY"] } },
+    { id: "DOGE", name: "Dogecoin", cb: "DOGE-USD", kr: "DOGE/USD", tabs: { "15m": ["KXDOGE15M"], "1h": ["KXDOGED"], "range": ["KXDOGE"], "month": ["KXDOGEMAXMON", "KXDOGEMINMON"], "year": ["KXDOGEY", "KXDOGEMAXY", "KXDOGEMINY"] } },
+    { id: "BNB", name: "BNB", cb: "BNB-USD", kr: "BNB/USD", tabs: { "15m": ["KXBNB15M"], "1h": ["KXBNBD"], "range": ["KXBNB"], "year": ["KXBNBY", "KXBNBMINY"], "month": ["KXBNBMINMON"] } },
+    { id: "HYPE", name: "Hype", cb: "HYPE-USD", kr: "HYPE/USD", tabs: { "15m": ["KXHYPE15M"], "1h": ["KXHYPED"], "range": ["KXHYPE"], "month": ["KXHYPEMAXMON", "KXHYPEMINMON"], "year": ["KXHYPEY"] } },
+    { id: "ZEC", name: "Zcash", cb: "ZEC-USD", kr: "ZEC/USD", tabs: { "15m": ["KXZEC15M"], "month": ["KXZECMAXMON", "KXZECMINMON"], "year": ["KXZECY", "KXZECMINY"] } },
+    { id: "NEAR", name: "NEAR", cb: "NEAR-USD", kr: "NEAR/USD", tabs: { "15m": ["KXNEAR15M"], "year": ["KXNEARY", "KXNEARMINY"] } },
+    { id: "ADA", name: "Cardano", cb: "ADA-USD", kr: "ADA/USD", tabs: { "month": ["KXADAMAXM", "KXADAMINM"] } },
+    { id: "SHIB", name: "Shiba", cb: "SHIB-USD", kr: "SHIB/USD", tabs: { "day": ["KXSHIBA", "KXSHIBAD"] } },
+    { id: "STRK", name: "Starknet", cb: "STRK-USD", kr: "STRK/USD", tabs: { "year": ["KXSTRKMAXY", "KXSTRKMINY"] } }
   ];
+  var coinLive = {};
   var books = {
-    venue: "both",
+    venue: "kalshi",
+    coin: "BTC",
     tab: "15m",
+    mk: {},
     kalshi: {},
-    poly: {},
     kalshiRoute: "",
-    polyRoute: "",
     kalshiErr: "",
-    polyErr: "",
     kalshiAt: 0,
-    polyAt: 0,
     busy: false,
     seenBuy: {},
+    notified: {},
     view: null,
-    audio: null
+    audio: null,
+    popKey: "",
+    popUntil: 0
   };
   var bookRouteMem = { "api.elections.kalshi.com": 1 };
+
+  function coinById(id) {
+    for (var i = 0; i < COINS.length; i++) if (COINS[i].id === id) return COINS[i];
+    return COINS[0];
+  }
+  function coinFromProduct(pid) {
+    for (var i = 0; i < COINS.length; i++) if (COINS[i].cb === pid) return COINS[i].id;
+    return null;
+  }
+  function coinFromKraken(sym) {
+    for (var i = 0; i < COINS.length; i++) if (COINS[i].kr === sym) return COINS[i].id;
+    return null;
+  }
+  function noteCoinPx(id, px, ts) {
+    if (!(px > 0) || !id) return;
+    if (!coinLive[id]) coinLive[id] = { px: null, at: 0, samples: [] };
+    coinLive[id].px = px;
+    coinLive[id].at = ts;
+    var s = Math.floor(ts);
+    var arr = coinLive[id].samples;
+    if (!arr.length || arr[arr.length - 1].t <= s - 8) arr.push({ t: s, p: px });
+    if (arr.length > 400) arr.splice(0, arr.length - 400);
+  }
+  function spotFor(id) {
+    if (id === books.coin && state.lastPx > 0) return state.lastPx;
+    var row = coinLive[id];
+    return row && row.px > 0 ? row.px : null;
+  }
+  function freshFor(id) {
+    if (id === books.coin) return bookFresh();
+    var row = coinLive[id];
+    return !!(row && row.at && (nowSec() - row.at) < 3 && row.px > 0);
+  }
+  function sigFor(id) {
+    if (id === books.coin) return bookSigma();
+    var row = coinLive[id];
+    var arr = row && row.samples || [];
+    if (arr.length < 12) return 0.30 / Math.sqrt(365 * 24 * 3600);
+    var acc = 0, n = 0;
+    for (var i = 1; i < arr.length; i++) {
+      var dt = arr[i].t - arr[i - 1].t;
+      if (dt > 0 && dt <= 30 && arr[i].p > 0 && arr[i - 1].p > 0) {
+        var r = Math.log(arr[i].p / arr[i - 1].p);
+        acc += (r * r) / dt;
+        n++;
+      }
+    }
+    var sig = n >= 8 ? Math.sqrt(acc / n) : null;
+    var floor = 0.30 / Math.sqrt(365 * 24 * 3600);
+    if (!(sig > 0) || sig < floor) sig = floor;
+    return sig;
+  }
+  function activeProduct() { return coinById(books.coin).cb; }
 
   function bookEls() {
     return {
@@ -2105,6 +2303,7 @@
       panels: document.getElementById("bookPanels"),
       route: document.getElementById("bookRoute"),
       beep: document.getElementById("bookBeep"),
+      notify: document.getElementById("bookNotify"),
       venues: document.getElementById("venueToggle")
     };
   }
@@ -2238,7 +2437,7 @@
   function bookDecision(c, spot, sig, fresh) {
     var out = {
       action: "wait",
-      title: "No bet right now",
+      title: "⏸️ No bet right now",
       reason: "Kalshi's price is fair",
       strength: "",
       edge: null,
@@ -2248,8 +2447,16 @@
       dir: null
     };
     if (!c) { out.reason = "Market data unavailable"; return out; }
-    var venueName = c.venue === "Polymarket" ? "Polymarket's" : "Kalshi's";
+    if (c.noBuy || c.tab === "month" || c.tab === "year") {
+      out.reason = (c.tab === "month" || c.tab === "year")
+        ? "No buy on monthly or yearly markets"
+        : "This pays if Bitcoin trades through the strike at any time, so close-price odds don't apply.";
+      return out;
+    }
+    var venueName = "Kalshi's";
     out.reason = venueName + " price is fair";
+    var yesAsk = c.bookAt ? c.bookYesAsk : c.yesAsk;
+    var noAsk = c.bookAt ? c.bookNoAsk : c.noAsk;
     var sec = (c.closeMs - Date.now()) / 1000;
     if (spot > 0 && sec > 0) out.fair = fairYes(c, spot, sig, sec);
     if (!(spot > 0)) { out.reason = "Waiting for a live Bitcoin price"; return out; }
@@ -2263,8 +2470,8 @@
       return out;
     }
     var sides = [];
-    if (c.yesAsk != null && c.yesAsk > 0 && c.yesAsk < 1) sides.push({ contract: "YES", dir: c.yesDir, fair: fair, ask: c.yesAsk });
-    if (c.noAsk != null && c.noAsk > 0 && c.noAsk < 1) sides.push({ contract: "NO", dir: c.noDir, fair: 1 - fair, ask: c.noAsk });
+    if (yesAsk != null && yesAsk > 0 && yesAsk < 1) sides.push({ contract: "YES", dir: c.yesDir, fair: fair, ask: yesAsk });
+    if (noAsk != null && noAsk > 0 && noAsk < 1) sides.push({ contract: "NO", dir: c.noDir, fair: 1 - fair, ask: noAsk });
     if (!sides.length) { out.reason = "No bid/ask from the venue"; return out; }
     var best = null;
     var anyBand = false;
@@ -2284,8 +2491,16 @@
     var strength = cents > 10 ? "Strong bet" : (cents >= 6 ? "Good bet" : "OK bet");
     out.action = best.dir === "DOWN" ? "down" : (best.dir === "UP" ? "up" : "up");
     if (best.dir !== "UP" && best.dir !== "DOWN") out.action = "up";
-    out.title = "BUY " + best.dir + " (" + best.contract + ") at " + fmtCents(best.ask);
-    out.reason = strength + " · " + (cents >= 10 ? cents.toFixed(0) : cents.toFixed(1)) + "¢ edge after fees";
+    var emo = best.dir === "DOWN" ? "📉" : "🚀";
+    var word = best.dir === "DOWN" ? "DOWN" : (best.dir === "UP" ? "UP" : best.dir);
+    out.title = emo + " BUY " + word;
+    out.reason = strength + " · " + (cents >= 10 ? cents.toFixed(0) : cents.toFixed(1)) + "¢ edge";
+    if (!(c.bookAt && Date.now() - c.bookAt < 20000)) {
+      out.action = "wait";
+      out.title = "⏸️ No bet right now";
+      out.reason = "Checking the live order book";
+      out.dir = null;
+    }
     out.strength = strength;
     out.edge = best.edge;
     out.ask = best.ask;
@@ -2301,15 +2516,25 @@
     if (!m) m = String(text).match(/\$\s*([0-9][0-9,]*(?:\.\d+)?)/);
     if (!m) return null;
     var n = parseFloat(m[1].replace(/,/g, ""));
-    return n > 100 ? n : null;
+    return n > 0 ? n : null;
   }
 
   function normKalshi(m) {
     var closeMs = Date.parse(m.close_time);
     if (!isFinite(closeMs)) return null;
     var kind = String(m.strike_type || "").toLowerCase();
+    var custom = m.custom_strike || {};
+    if (typeof custom === "string") {
+      try { custom = JSON.parse(custom); } catch (eC) { custom = {}; }
+    }
     var floor = numOrNull(m.floor_strike);
     var cap = numOrNull(m.cap_strike);
+    if (!(floor > 0)) floor = numOrNull(custom.floor_strike);
+    if (!(cap > 0)) cap = numOrNull(custom.cap_strike);
+    if (kind === "custom") {
+      var hinted = String(custom.strike_type || "").toLowerCase();
+      if (hinted && hinted !== "custom") kind = hinted;
+    }
     var strike = null, strikeHi = null;
     if (kind === "between") {
       strike = floor;
@@ -2317,8 +2542,8 @@
     } else if (kind.indexOf("less") === 0) {
       strike = cap || parseStrikeText(m.yes_sub_title || "");
     } else {
-      strike = floor || parseStrikeText(m.yes_sub_title || m.title || "");
-      if (!kind) kind = "greater_or_equal";
+      strike = (floor > 0 ? floor : null) || parseStrikeText(m.yes_sub_title || m.title || "");
+      if (!kind || kind === "custom") kind = "greater_or_equal";
     }
     var yesBid = numOrNull(m.yes_bid_dollars);
     var yesAsk = numOrNull(m.yes_ask_dollars);
@@ -2347,138 +2572,20 @@
       yesDir: dirs.yes,
       noDir: dirs.no,
       feeRate: 0.07,
-      beatText: "",
+      beatText: strike > 0 || (kind === "between" && strikeHi > 0) ? "" : "strike unavailable",
       sourceText: "CF Benchmarks BRTI, published by Kalshi",
       rawTitle: m.yes_sub_title || "",
       path: path
     };
   }
 
-  function jsonField(v) {
-    if (v == null) return null;
-    if (typeof v === "string") {
-      try { return JSON.parse(v); } catch (e) { return null; }
-    }
-    return v;
-  }
-
-  function normPolyMarket(event, m) {
-    if (!m || m.closed) return null;
-    var closeMs = Date.parse(m.endDate || event.endDate);
-    if (!isFinite(closeMs)) return null;
-    var outcomes = jsonField(m.outcomes) || [];
-    var question = m.question || event.title || "";
-    var desc = (m.description || "") + " " + (event.resolutionSource || "");
-    var group = m.groupItemTitle || "";
-    var kind = "updown";
-    var strike = null, strikeHi = null;
-    if (/up or down/i.test(question) && /above|below/i.test(question) === false) kind = "updown";
-    else if (/below/i.test(question) || /^less/i.test(String(m.strikeType || ""))) kind = "less";
-    else if (/between|to \d/i.test(question)) kind = "between";
-    else kind = "greater";
-    if (kind !== "updown") {
-      strike = parseStrikeText(question) || parseStrikeText(group);
-      if (!strike && /^[0-9][0-9,]*$/.test(String(group).trim())) strike = parseFloat(String(group).replace(/,/g, ""));
-    }
-    var yesBid = numOrNull(m.bestBid);
-    var yesAsk = numOrNull(m.bestAsk);
-    var noBid = (yesAsk != null) ? (1 - yesAsk) : null;
-    var noAsk = (yesBid != null) ? (1 - yesBid) : null;
-    if (yesBid != null && yesBid <= 0) yesBid = null;
-    if (yesAsk != null && (yesAsk <= 0 || yesAsk >= 1)) yesAsk = null;
-    if (noAsk != null && (noAsk <= 0 || noAsk >= 1)) noAsk = null;
-    if (noBid != null && (noBid <= 0 || noBid >= 1)) noBid = null;
-    var feeRate = 0;
-    if (m.feesEnabled) {
-      var sch = m.feeSchedule || {};
-      feeRate = numOrNull(sch.rate);
-      if (feeRate == null) feeRate = 0.07;
-    }
-    var beatText = "";
-    var sourceText = event.resolutionSource || "Polymarket";
-    if (kind === "updown") {
-      if (/chainlink/i.test(desc)) {
-        beatText = "Chainlink BTC/USD at the start of this window. Polymarket does not publish that number.";
-        sourceText = "Chainlink BTC/USD";
-      } else if (/binance/i.test(desc)) {
-        beatText = "Binance BTC/USDT candle open named in the rules. That open is not in the market payload.";
-        sourceText = "Binance BTC/USDT";
-      } else {
-        beatText = "The price at the start of the window. It is not published as a number.";
-      }
-    }
-    var dirs = dirPair(kind);
-    var upName = outcomes[0] || "Yes";
-    return {
-      venue: "Polymarket",
-      id: m.conditionId || m.id || question,
-      title: question,
-      subtitle: group ? String(group) : upName,
-      closeMs: closeMs,
-      kind: kind,
-      strike: strike,
-      strikeHi: strikeHi,
-      yesBid: yesBid,
-      yesAsk: yesAsk,
-      noBid: noBid,
-      noAsk: noAsk,
-      yesDir: dirs.yes,
-      noDir: dirs.no,
-      feeRate: feeRate,
-      beatText: beatText,
-      sourceText: sourceText,
-      rawTitle: question,
-      outcomeName: upName
-    };
-  }
-
-  function etParts(ms) {
-    var fmt = new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/New_York",
-      year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", hourCycle: "h23"
-    });
-    var o = { year: "2026", month: "01", day: "01", hour: "00" };
-    fmt.formatToParts(new Date(ms)).forEach(function (p) {
-      if (p.type !== "literal") o[p.type] = p.value;
-    });
-    return o;
-  }
-
-  function polySlugList(nowMs) {
-    var sec = Math.floor(nowMs / 1000);
-    var t5 = sec - (sec % 300);
-    var t15 = sec - (sec % 900);
-    var t4 = sec - ((sec - 3600) % 14400);
-    var p = etParts(nowMs);
-    var months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
-    var mon = months[(+p.month) - 1] || "november";
-    var day = String(+p.day);
-    var year = p.year;
-    var h = +p.hour;
-    var ap = "am";
-    var h12 = h;
-    if (h === 0) h12 = 12;
-    else if (h === 12) { h12 = 12; ap = "pm"; }
-    else if (h > 12) { h12 = h - 12; ap = "pm"; }
-    return [
-      { id: "5m", slug: "btc-updown-5m-" + t5 },
-      { id: "5m", slug: "btc-updown-5m-" + (t5 + 300) },
-      { id: "15m", slug: "btc-updown-15m-" + t15 },
-      { id: "15m", slug: "btc-updown-15m-" + (t15 + 900) },
-      { id: "4h", slug: "btc-updown-4h-" + t4 },
-      { id: "1h", slug: "bitcoin-up-or-down-" + mon + "-" + day + "-" + year + "-" + h12 + ap + "-et" },
-      { id: "day", slug: "bitcoin-up-or-down-on-" + mon + "-" + day + "-" + year },
-      { id: "above", slug: "bitcoin-above-on-" + mon + "-" + day + "-" + year }
-    ];
-  }
 
   function unwrapPayload(data) {
     if (data == null) return null;
     if (typeof data === "string") {
       try { return JSON.parse(data); } catch (e) { return null; }
     }
-    if (Array.isArray(data) || data.markets || data.series || data.events) return data;
+    if (Array.isArray(data) || data.markets || data.series || data.events || data.orderbook_fp || data.orderbook) return data;
     if (typeof data.contents === "string") {
       try { return JSON.parse(data.contents); } catch (e2) { return null; }
     }
@@ -2569,33 +2676,71 @@
     try {
       var jobs = [];
       var kalshiQueue = [];
-      KALSHI_TABS.forEach(function (tab) {
-        tab.tickers.forEach(function (ticker) {
-          kalshiQueue.push({ tab: tab.id, ticker: ticker });
+      var kBuild = {};
+      var kLeft = {};
+      books.coinLeft = {};
+      COINS.forEach(function (coin) {
+        BOOK_TABS.forEach(function (tab) {
+          var tickers = (coin.tabs && coin.tabs[tab.id]) || [];
+          if (!tickers.length) return;
+          var key = coin.id + "|" + tab.id;
+          kBuild[key] = [];
+          kLeft[key] = tickers.length;
+          books.coinLeft[coin.id] = (books.coinLeft[coin.id] || 0) + tickers.length;
+          tickers.forEach(function (ticker) {
+            kalshiQueue.push({ coin: coin.id, tab: tab.id, key: key, ticker: ticker });
+          });
         });
       });
+      function paint() { try { renderBooks(); } catch (ePub) {} }
       var kalshiCursor = 0;
       function takeKalshi() {
         if (kalshiCursor >= kalshiQueue.length) return Promise.resolve();
         var item = kalshiQueue[kalshiCursor++];
         var p = kalshiSeries(item.ticker).then(function (got) {
-          return { tab: item.tab, got: got };
+          return { coin: item.coin, tab: item.tab, key: item.key, got: got };
         }).catch(function (e) {
-          return { tab: item.tab, error: e.message || String(e) };
+          return { coin: item.coin, tab: item.tab, key: item.key, error: e.message || String(e) };
         }).then(function (row) {
           if (row.error) books.kalshiErr = row.error;
           else {
             books.kalshiRoute = (row.got && row.got.route) || books.kalshiRoute;
             ((row.got && row.got.markets) || []).forEach(function (m) {
               var c = normKalshi(m);
-              if (c && c.closeMs > Date.now() - 2000) kBuild[row.tab].push(c);
+              if (c && c.closeMs > Date.now() - 2000) {
+                c.coin = row.coin;
+                c.tab = row.tab;
+                c.noBuy = row.tab === "month" || row.tab === "year" || c.path || /MAXY|MINY|MAXMON|MINMON/.test(c.id || "");
+                var prevTab = books.mk[row.coin] && books.mk[row.coin][row.tab];
+                if (prevTab) {
+                  for (var pi = 0; pi < prevTab.length; pi++) {
+                    if (prevTab[pi].id === c.id && prevTab[pi].bookAt) {
+                      c.bookYesAsk = prevTab[pi].bookYesAsk;
+                      c.bookNoAsk = prevTab[pi].bookNoAsk;
+                      c.bookYesBid = prevTab[pi].bookYesBid;
+                      c.bookNoBid = prevTab[pi].bookNoBid;
+                      c.bookAt = prevTab[pi].bookAt;
+                      break;
+                    }
+                  }
+                }
+                kBuild[row.key].push(c);
+              }
             });
           }
-          kLeft[row.tab] -= 1;
-          if (kLeft[row.tab] <= 0) {
-            if (!books.kalshi) books.kalshi = {};
-            books.kalshi[row.tab] = kBuild[row.tab];
+          kLeft[row.key] -= 1;
+          if (books.coinLeft) books.coinLeft[row.coin] = (books.coinLeft[row.coin] || 1) - 1;
+          if (kLeft[row.key] <= 0) {
+            if (!books.mk[row.coin]) books.mk[row.coin] = {};
+            books.mk[row.coin][row.tab] = kBuild[row.key];
             books.kalshiAt = Date.now();
+            if (books.coinLeft && books.coinLeft[row.coin] <= 0) {
+              var anyOpen = false;
+              var mine = books.mk[row.coin] || {};
+              for (var tk in mine) if (mine[tk] && mine[tk].length) anyOpen = true;
+              if (!books.coinEmpty) books.coinEmpty = {};
+              books.coinEmpty[row.coin] = !anyOpen;
+            }
             paint();
           }
           return row;
@@ -2605,52 +2750,7 @@
       }
       var kalshiWorkers = [];
       for (var w = 0; w < 2; w++) kalshiWorkers.push(takeKalshi());
-      var slugList = polySlugList(Date.now());
-      var polyJobs = slugList.map(function (item) {
-        var url = "https://gamma-api.polymarket.com/events?slug=" + encodeURIComponent(item.slug);
-        return fetchJson(url).then(function (got) {
-          return { tab: item.id, got: got };
-        }).catch(function (e) {
-          return { tab: item.id, error: e.message || String(e) };
-        });
-      });
-      var kBuild = {};
-      var pBuild = {};
-      var kLeft = {};
-      var pLeft = {};
-      KALSHI_TABS.forEach(function (tab) {
-        kBuild[tab.id] = [];
-        kLeft[tab.id] = tab.tickers.length;
-      });
-      slugList.forEach(function (item) {
-        if (!pBuild[item.id]) pBuild[item.id] = [];
-        pLeft[item.id] = (pLeft[item.id] || 0) + 1;
-      });
-      function paint() { try { renderBooks(); } catch (ePub) {} }
-      polyJobs.forEach(function (job) {
-        job.then(function (row) {
-          if (row.error) books.polyErr = row.error;
-          else {
-            books.polyRoute = (row.got && row.got.route) || books.polyRoute;
-            var events = row.got && Array.isArray(row.got.data) ? row.got.data : [];
-            events.forEach(function (ev) {
-              if (ev.closed) return;
-              (ev.markets || []).forEach(function (m) {
-                var c = normPolyMarket(ev, m);
-                if (c && c.closeMs > Date.now() - 2000) pBuild[row.tab].push(c);
-              });
-            });
-          }
-          pLeft[row.tab] -= 1;
-          if (pLeft[row.tab] <= 0) {
-            if (!books.poly) books.poly = {};
-            books.poly[row.tab] = pBuild[row.tab];
-            books.polyAt = Date.now();
-            paint();
-          }
-        });
-      });
-      await Promise.all(kalshiWorkers.concat(polyJobs));
+      await Promise.all(kalshiWorkers);
     } catch (e) {
       books.kalshiErr = e.message || String(e);
     }
@@ -2666,8 +2766,10 @@
     var band = [];
     for (var j = 0; j < live.length; j++) {
       var c = live[j];
-      var yIn = c.yesAsk != null && c.yesAsk >= 0.4 && c.yesAsk <= 0.57;
-      var nIn = c.noAsk != null && c.noAsk >= 0.4 && c.noAsk <= 0.57;
+      var yPx = c.bookAt ? c.bookYesAsk : c.yesAsk;
+      var nPx = c.bookAt ? c.bookNoAsk : c.noAsk;
+      var yIn = yPx != null && yPx >= 0.4 && yPx <= 0.57;
+      var nIn = nPx != null && nPx >= 0.4 && nPx <= 0.57;
       if (yIn || nIn) band.push(c);
     }
     var pool = band.length ? band : live;
@@ -2688,18 +2790,97 @@
     return best;
   }
 
+  function bestBookBid(levels) {
+    var best = null;
+    if (!levels) return null;
+    for (var i = 0; i < levels.length; i++) {
+      var p = +levels[i][0];
+      if (!(p > 0)) continue;
+      if (p > 1.5) p = p / 100;
+      if (!(p > 0) || p >= 1) continue;
+      if (best == null || p > best) best = p;
+    }
+    return best;
+  }
+  function quotesFromBook(data) {
+    var fp = (data && (data.orderbook_fp || data.orderbook)) || {};
+    var yesBid = bestBookBid(fp.yes_dollars || fp.yes);
+    var noBid = bestBookBid(fp.no_dollars || fp.no);
+    var yesAsk = noBid != null ? 1 - noBid : null;
+    var noAsk = yesBid != null ? 1 - yesBid : null;
+    if (!(yesAsk > 0) || yesAsk >= 1) yesAsk = null;
+    if (!(noAsk > 0) || noAsk >= 1) noAsk = null;
+    return { yesBid: yesBid, noBid: noBid, yesAsk: yesAsk, noAsk: noAsk };
+  }
+  function bookInBand(c) {
+    var y = c.yesAsk, n = c.noAsk;
+    return (y != null && y >= 0.40 && y <= 0.57) || (n != null && n >= 0.40 && n <= 0.57);
+  }
+  var bookFlight = {};
+  function refreshNearBooks() {
+    if (books.bookBusy) return;
+    var queue = [];
+    for (var coin in books.mk) {
+      var mk = books.mk[coin];
+      for (var tab in mk) {
+        if (tab === "month" || tab === "year") continue;
+        var list = mk[tab] || [];
+        for (var i = 0; i < list.length; i++) {
+          var c = list[i];
+          if (!c || c.noBuy || !bookInBand(c)) continue;
+          if (c.bookAt && Date.now() - c.bookAt < 10000) continue;
+          if (c.bookFailAt && Date.now() - c.bookFailAt < 15000) continue;
+          if (bookFlight[c.id]) continue;
+          queue.push({ c: c, pri: (coin === books.coin && tab === books.tab) ? 0 : 1 });
+        }
+      }
+    }
+    queue.sort(function (a, b) { return a.pri - b.pri; });
+    queue = queue.slice(0, 4);
+    if (!queue.length) return;
+    books.bookBusy = true;
+    var left = queue.length;
+    queue.forEach(function (job) {
+      bookFlight[job.c.id] = true;
+      var url = "https://api.elections.kalshi.com/trade-api/v2/markets/" + encodeURIComponent(job.c.id) + "/orderbook";
+      fetchJson(url).then(function (got) {
+        var q = quotesFromBook(got.data);
+        job.c.bookYesAsk = q.yesAsk;
+        job.c.bookNoAsk = q.noAsk;
+        job.c.bookYesBid = q.yesBid;
+        job.c.bookNoBid = q.noBid;
+        job.c.bookAt = Date.now();
+      }).catch(function () { job.c.bookFailAt = Date.now(); }).then(function () {
+        bookFlight[job.c.id] = false;
+        left -= 1;
+        if (left <= 0) {
+          books.bookBusy = false;
+          try { renderBooks(); } catch (eR) {}
+        }
+      });
+    });
+  }
+  function coinMarkets(id) {
+    return books.mk[id] || {};
+  }
+  function coinVisible(id) {
+    if (!books.kalshiAt) return true;
+    if (books.coinEmpty && books.coinEmpty[id]) return false;
+    var mk = coinMarkets(id);
+    for (var k in mk) if (mk[k] && mk[k].length) return true;
+    return !books.coinEmpty || !books.coinEmpty[id];
+  }
   function visibleTabs() {
     var ids = [];
-    function has(map, id) { return map && map[id] && map[id].length; }
+    var mk = coinMarkets(books.coin);
     for (var i = 0; i < BOOK_TABS.length; i++) {
-      var id = BOOK_TABS[i].id;
-      var k = has(books.kalshi, id);
-      var p = has(books.poly, id);
-      if (books.venue === "kalshi" && k) ids.push(BOOK_TABS[i]);
-      else if (books.venue === "poly" && p) ids.push(BOOK_TABS[i]);
-      else if (books.venue === "both" && (k || p)) ids.push(BOOK_TABS[i]);
+      var list = mk[BOOK_TABS[i].id];
+      if (list && list.length) ids.push(BOOK_TABS[i]);
     }
     return ids;
+  }
+  function kalshiTradeUrl(c) {
+    return "https://kalshi.com/markets/" + String(c && c.id || "").toLowerCase();
   }
 
   function panelHtml(pick, emptyNote) {
@@ -2724,7 +2905,7 @@
     var fair = "";
     if (d.fair != null) {
       var pct = Math.round(d.fair * 100);
-      var mkt = c.yesAsk != null ? (" · " + c.venue + " YES " + fmtCents(c.yesAsk)) : "";
+      var mkt = yesAsk != null ? (" · Kalshi YES " + fmtCents(yesAsk)) : "";
       fair = "Fair chance YES: " + pct + "%" + mkt;
     } else if (c.kind === "updown") {
       fair = "Fair chance not shown. " + (c.beatText || "Price to beat isn't published.");
@@ -2735,6 +2916,10 @@
     if (pick.n > 1 && pick.band && pick.d.edge != null) pickNote = "Best edge among " + pick.nBand + " contracts priced 40–57¢ (" + pick.n + " open).";
     else if (pick.n > 1 && pick.band) pickNote = "Showing the one that closes soonest. " + pick.nBand + " are priced 40–57¢.";
     else if (pick.n > 1) pickNote = "Nearest strike to the live price. None are priced 40–57¢.";
+    var yesAsk = c.bookAt ? c.bookYesAsk : c.yesAsk;
+    var noAsk = c.bookAt ? c.bookNoAsk : c.noAsk;
+    var yesBid = c.bookAt ? c.bookYesBid : c.yesBid;
+    var noBid = c.bookAt ? c.bookNoBid : c.noBid;
     var yesLabel = c.yesDir === "UP" ? "UP (YES)" : (c.yesDir === "DOWN" ? "DOWN (YES)" : "YES");
     var noLabel = c.noDir === "DOWN" ? "DOWN (NO)" : (c.noDir === "UP" ? "UP (NO)" : "NO");
     var explain = "";
@@ -2750,44 +2935,57 @@
     } else {
       explain = "UP wins if the settlement price is at or above the window-open price. DOWN wins if it is below. Source: " + c.sourceText + ".";
     }
+    var pop = books.popUntil > Date.now() && books.popKey === (c.id + "|" + d.dir) ? " pop" : "";
+    var trade = '<a class="trade-btn' + (cls === "wait" ? "" : " hot") + '" href="' + escHtml(kalshiTradeUrl(c)) + '" target="_blank" rel="noopener noreferrer">Trade on Kalshi</a>';
     return '<div class="k-panel">' +
-      '<div class="k-venue">' + escHtml(c.venue) + " · closes " + escHtml(fmtCountdown(c.closeMs)) + "</div>" +
-      '<div class="k-title">' + escHtml(c.title) + "</div>" +
+      '<div class="k-banner ' + cls + pop + '"><div class="k-banner-title">' + escHtml(d.title) + '</div><div class="k-banner-sub">' + escHtml(d.reason) + "</div></div>" +
+      '<div class="k-venue">' + escHtml(books.coin) + " · closes " + escHtml(fmtCountdown(c.closeMs)) + "</div>" +
       '<div class="k-beat-label">Price to beat</div>' +
       '<div class="k-beat">' + escHtml(beat) + "</div>" +
       (vs ? '<div class="k-vs">' + escHtml(vs) + "</div>" : "") +
-      '<div class="k-src">' + escHtml(c.sourceText) + (c.subtitle ? " · " + escHtml(c.subtitle) : "") + "</div>" +
+      '<div class="k-meta">' + escHtml(explain) + "</div>" +
+      trade +
+      '<details class="mini"><summary>Quotes</summary>' +
       '<div class="k-quotes">' +
-        '<div class="k-q"><b>' + escHtml(yesLabel) + "</b><span>" + escHtml(fmtCents(c.yesBid)) + " / " + escHtml(fmtCents(c.yesAsk)) + "</span></div>" +
-        '<div class="k-q"><b>' + escHtml(noLabel) + "</b><span>" + escHtml(fmtCents(c.noBid)) + " / " + escHtml(fmtCents(c.noAsk)) + "</span></div>" +
+        '<div class="k-q"><b>' + escHtml(yesLabel) + "</b><span>" + escHtml(fmtCents(yesBid)) + " bid · " + escHtml(fmtCents(yesAsk)) + " ask</span></div>" +
+        '<div class="k-q"><b>' + escHtml(noLabel) + "</b><span>" + escHtml(fmtCents(noBid)) + " bid · " + escHtml(fmtCents(noAsk)) + " ask</span></div>" +
       "</div>" +
       (fair ? '<div class="k-fair">' + escHtml(fair) + "</div>" : "") +
-      '<div class="k-banner ' + cls + '"><div class="k-banner-title">' + escHtml(d.title) + '</div><div class="k-banner-sub">' + escHtml(d.reason) + "</div></div>" +
-      '<div class="k-meta">' + escHtml(explain) + "</div>" +
       (pickNote ? '<div class="k-pick">' + escHtml(pickNote) + "</div>" : "") +
-      '<div class="k-src">' + escHtml(c.id) + "</div>" +
-    "</div>";
+      '<div class="k-src">' + escHtml(c.sourceText) + " · " + escHtml(c.id) + "</div>" +
+      "</details></div>";
+  }
+
+  function renderCoins() {
+    var row = document.getElementById("coinRow");
+    if (!row) return;
+    var html = "";
+    for (var i = 0; i < COINS.length; i++) {
+      var c = COINS[i];
+      if (books.kalshiAt && books.coinEmpty && books.coinEmpty[c.id]) continue;
+      var on = c.id === books.coin;
+      html += '<button type="button" data-coin="' + c.id + '" class="' + (on ? "on" : "") + '" aria-pressed="' + (on ? "true" : "false") + '">' + c.id + "</button>";
+    }
+    row.innerHTML = html;
   }
 
   function renderBooks() {
     var ui = bookEls();
     if (!ui.summary || !ui.panels) return;
-    var spot = state.lastPx;
-    var sig = bookSigma();
-    var fresh = bookFresh();
+    renderCoins();
+    books.kalshi = coinMarkets(books.coin);
+    var spot = spotFor(books.coin);
+    var sig = sigFor(books.coin);
+    var fresh = freshFor(books.coin);
     var tabs = visibleTabs();
     if (!tabs.length) {
       ui.tabs.innerHTML = "";
-      var msg = "Kalshi data unavailable";
-      if (books.venue === "poly") msg = "Polymarket data unavailable";
-      if (books.venue === "both" && !books.kalshiAt && !books.polyAt) msg = "Checking Kalshi and Polymarket…";
-      else if (books.venue === "both") msg = "No open Bitcoin markets loaded";
-      ui.summary.textContent = msg;
+      var msg = books.kalshiAt ? "No open Kalshi market for " + books.coin : "Checking Kalshi…";
       ui.summary.className = "k-summary";
-      ui.panels.innerHTML = '<div class="k-panel"><div class="k-title">' + escHtml(msg) + "</div><div class=\"k-meta\">" +
-        escHtml(books.kalshiErr || books.polyErr || "Waiting for the public feed.") + "</div></div>";
-      ui.route.textContent = [books.kalshiRoute, books.polyRoute].filter(Boolean).join(" · ") || "—";
-      books.view = { summary: msg, panels: [], tab: books.tab, venue: books.venue };
+      ui.summary.innerHTML = "⏸️ " + escHtml(msg);
+      ui.panels.innerHTML = '<div class="k-panel"><div class="k-banner wait"><div class="k-banner-title">⏸️ No bet right now</div><div class="k-banner-sub">' + escHtml(books.kalshiErr || "Waiting for the public feed.") + "</div></div></div>";
+      if (ui.route) ui.route.textContent = books.kalshiRoute || "—";
+      books.view = { summary: msg, tab: books.tab, coin: books.coin, kalshi: null };
       return;
     }
     var have = false;
@@ -2800,61 +2998,42 @@
     }
     ui.tabs.innerHTML = tabHtml;
     var kList = (books.kalshi && books.kalshi[books.tab]) || [];
-    var pList = (books.poly && books.poly[books.tab]) || [];
-    var showK = books.venue !== "poly";
-    var showP = books.venue !== "kalshi";
-    var kPick = showK ? chooseContract(kList, spot, sig, fresh) : null;
-    var pPick = showP ? chooseContract(pList, spot, sig, fresh) : null;
-    var html = "";
-    var differ = "";
-    if (showK && showP && kPick && pPick && kPick.c.strike > 0 && pPick.c.strike > 0 && Math.abs(kPick.c.strike - pPick.c.strike) >= 0.5) {
-      differ = "Strikes differ: Kalshi " + fmtPx(kPick.c.strike) + " vs Polymarket " + fmtPx(pPick.c.strike) + ".";
-    } else if (showK && showP && kPick && kPick.c.strike > 0 && pPick && !(pPick.c.strike > 0)) {
-      differ = "Kalshi's price to beat is " + fmtPx(kPick.c.strike) + ". Polymarket's official beat is " + (pPick.c.sourceText || "a window-open price") + " and is not published as a number, so they can differ.";
-    }
-    if (differ) html += '<div class="k-diff">' + escHtml(differ) + "</div>";
-    if (showK) {
-      html += kPick ? panelHtml(kPick) : panelHtml(null, books.kalshiAt ? "Kalshi has no open market in this tab." : "Loading Kalshi…");
-    }
-    if (showP) {
-      var emptyP = books.polyAt ? "Polymarket has no open market in this tab." : "Loading Polymarket…";
-      if (books.tab === "5m" && books.venue === "both" && !pPick && books.polyAt) emptyP = "No open Polymarket 5-minute market.";
-      html += pPick ? panelHtml(pPick) : panelHtml(null, emptyP);
-    }
-    if (books.tab === "5m" && showK && !kList.length) {
-      html = '<div class="k-meta">Kalshi does not list a 5-minute Bitcoin series.</div>' + html;
-    }
-    ui.panels.innerHTML = html;
+    var kPick = chooseContract(kList, spot, sig, fresh);
+    ui.panels.innerHTML = kPick ? panelHtml(kPick) : panelHtml(null, "Loading this market…");
     var buys = [];
     var buyKeys = {};
-    function noteBuy(tabLabel, pick) {
-      if (!pick || !pick.d || pick.d.action === "wait" || !pick.d.dir) return;
-      var label = tabLabel + " " + pick.c.venue + " " + pick.d.dir;
-      buys.push(label);
-      buyKeys[pick.c.venue + "|" + pick.c.id + "|" + pick.d.dir + "|" + pick.d.contract] = true;
-    }
-    for (var b = 0; b < BOOK_TABS.length; b++) {
-      var id = BOOK_TABS[b].id;
-      if (books.venue !== "poly") {
-        var kk = chooseContract(books.kalshi[id] || [], spot, sig, fresh);
-        noteBuy(BOOK_TABS[b].label, kk);
-      }
-      if (books.venue !== "kalshi") {
-        var pp = chooseContract(books.poly[id] || [], spot, sig, fresh);
-        noteBuy(BOOK_TABS[b].label, pp);
+    for (var ci = 0; ci < COINS.length; ci++) {
+      var coin = COINS[ci];
+      var mk = coinMarkets(coin.id);
+      for (var b = 0; b < BOOK_TABS.length; b++) {
+        var tab = BOOK_TABS[b];
+        var pick = chooseContract(mk[tab.id] || [], spotFor(coin.id), sigFor(coin.id), freshFor(coin.id));
+        if (!pick || !pick.d || pick.d.action === "wait" || (pick.d.dir !== "UP" && pick.d.dir !== "DOWN")) continue;
+        var emo = pick.d.dir === "DOWN" ? "📉" : "🚀";
+        var key = pick.c.id + "|" + pick.d.dir;
+        buys.push({ text: emo + " " + coin.id + " " + tab.label, coin: coin.id, tab: tab.id, key: key, closeMs: pick.c.closeMs, dir: pick.d.dir, emo: emo, beat: pick.c.strike > 0 ? fmtPx(pick.c.strike) : "the strike", when: fmtEt(pick.c.closeMs), strength: pick.d.strength || pick.d.reason, ask: fmtCents(pick.d.ask) });
+        buyKeys[key] = true;
       }
     }
     if (!buys.length) {
-      ui.summary.textContent = "No buy right now";
       ui.summary.className = "k-summary";
+      ui.summary.innerHTML = "⏸️ No bet right now";
     } else {
-      ui.summary.textContent = "Buy: " + buys.join(" · ");
       ui.summary.className = "k-summary hot";
+      var bits = "";
+      for (var bi = 0; bi < buys.length; bi++) {
+        bits += '<button type="button" class="sum-buy" data-coin="' + buys[bi].coin + '" data-tab="' + buys[bi].tab + '">' + escHtml(buys[bi].text) + "</button>";
+      }
+      ui.summary.innerHTML = bits;
     }
-    var routeBits = [];
-    if (showK && books.kalshiRoute) routeBits.push("Kalshi " + books.kalshiRoute);
-    if (showP && books.polyRoute) routeBits.push("Polymarket " + books.polyRoute);
-    ui.route.textContent = routeBits.join(" · ") || "—";
+    if (ui.route) ui.route.textContent = books.kalshiRoute ? ("Kalshi " + books.kalshiRoute) : "—";
+    if (kPick && kPick.d && kPick.d.dir && (kPick.d.dir === "UP" || kPick.d.dir === "DOWN")) {
+      var cardKey = kPick.c.id + "|" + kPick.d.dir;
+      if (books.popKey !== cardKey) {
+        books.popKey = cardKey;
+        books.popUntil = Date.now() + 700;
+      }
+    }
     if (ui.beep && ui.beep.checked) {
       var newKey = null;
       for (var key in buyKeys) {
@@ -2886,16 +3065,30 @@
       }
     }
     books.seenBuy = buyKeys;
+    if (ui.notify && ui.notify.checked && navigator.serviceWorker) {
+      for (var ni = 0; ni < buys.length; ni++) {
+        var nb = buys[ni];
+        if (books.notified[nb.key] && Date.now() < books.notified[nb.key]) continue;
+        if (books.seenBuy[nb.key] && books.notified[nb.key]) continue;
+        books.notified[nb.key] = nb.closeMs;
+        (function (item) {
+          var nTitle = item.emo + " BUY " + item.dir + ": " + item.coin + " " + item.tab + " at " + item.ask;
+          var nBody = "Price to beat " + item.beat + " · " + item.when + " close · " + item.strength;
+          navigator.serviceWorker.ready.then(function (reg) {
+            return reg.showNotification(nTitle, { body: nBody, icon: "./icons/icon-192.png", tag: item.key, data: { coin: item.coin, tab: item.tab } });
+          }).catch(function () {});
+        })(nb);
+      }
+    }
     books.view = {
-      venue: books.venue,
+      coin: books.coin,
       tab: books.tab,
       summary: ui.summary.textContent,
-      routes: { kalshi: books.kalshiRoute, poly: books.polyRoute },
-      errors: { kalshi: books.kalshiErr, poly: books.polyErr },
-      differ: differ,
-      kalshi: kPick ? { id: kPick.c.id, strike: kPick.c.strike, title: kPick.c.title, banner: kPick.d.title, reason: kPick.d.reason, fair: kPick.d.fair, yesAsk: kPick.c.yesAsk, noAsk: kPick.c.noAsk } : null,
-      poly: pPick ? { id: pPick.c.id, strike: pPick.c.strike, title: pPick.c.title, banner: pPick.d.title, reason: pPick.d.reason, fair: pPick.d.fair, yesAsk: pPick.c.yesAsk, noAsk: pPick.c.noAsk, beat: pPick.c.beatText } : null
+      routes: { kalshi: books.kalshiRoute },
+      errors: { kalshi: books.kalshiErr },
+      kalshi: kPick ? { id: kPick.c.id, strike: kPick.c.strike, title: kPick.c.title, banner: kPick.d.title, reason: kPick.d.reason, fair: kPick.d.fair, yesAsk: kPick.c.bookAt ? kPick.c.bookYesAsk : kPick.c.yesAsk, noAsk: kPick.c.bookAt ? kPick.c.bookNoAsk : kPick.c.noAsk, book: !!kPick.c.bookAt } : null
     };
+    refreshNearBooks();
   }
 
   window.__books = function () { return books.view; };
@@ -2942,8 +3135,117 @@
     });
   }
 
+  function selectCoin(id) {
+    var coin = coinById(id);
+    if (!coin) return;
+    var changed = books.coin !== coin.id;
+    books.coin = coin.id;
+    if (changed) {
+      books.tab = "15m";
+      state.sec = new Map();
+      state.bars = [];
+      state.curBar = null;
+      state.trades = [];
+      state.min1 = [];
+      state.min5 = [];
+      state.hour = [];
+      state.chart10 = [];
+      state.chart1 = [];
+      state.chart5 = [];
+      state.cbVar = null;
+      state.seeded = false;
+      state.open24 = null;
+      var live = coinLive[coin.id];
+      state.lastPx = live && live.px > 0 ? live.px : null;
+      state.lastPriceAt = live && live.at ? live.at : 0;
+      chartCtl.needFit = true;
+      chartCtl.lastSig = "";
+      chartCtl.lineKey = "";
+      seed();
+    }
+    renderBooks();
+  }
+
+  var bootUi = bookEls();
+  var coinRow = document.getElementById("coinRow");
+  if (coinRow) {
+    coinRow.addEventListener("click", function (ev) {
+      var btn = ev.target;
+      while (btn && btn !== coinRow && !(btn.getAttribute && btn.getAttribute("data-coin"))) btn = btn.parentNode;
+      if (!btn || btn === coinRow) return;
+      selectCoin(btn.getAttribute("data-coin"));
+    });
+  }
+  if (bootUi.summary) {
+    bootUi.summary.addEventListener("click", function (ev) {
+      var btn = ev.target;
+      while (btn && btn !== bootUi.summary && !(btn.getAttribute && btn.getAttribute("data-coin"))) btn = btn.parentNode;
+      if (!btn || btn === bootUi.summary) return;
+      selectCoin(btn.getAttribute("data-coin"));
+      books.tab = btn.getAttribute("data-tab") || books.tab;
+      renderBooks();
+    });
+  }
+  if (bootUi.notify) {
+    bootUi.notify.addEventListener("change", function () {
+      if (!bootUi.notify.checked) return;
+      if (!window.Notification) { bootUi.notify.checked = false; return; }
+      Notification.requestPermission().then(function (perm) {
+        if (perm !== "granted") bootUi.notify.checked = false;
+      }).catch(function () { bootUi.notify.checked = false; });
+    });
+  }
+  var installBtn = document.getElementById("installBtn");
+  var deferredInstall = null;
+  var standaloneApp = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+  if (installBtn && !standaloneApp) {
+    installBtn.hidden = false;
+    var ios = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    installBtn.textContent = ios ? "Tap Share, then Add to Home Screen" : "Install app";
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      deferredInstall = e;
+      installBtn.hidden = false;
+      installBtn.textContent = "Install app";
+    });
+    installBtn.addEventListener("click", function () {
+      if (!deferredInstall) return;
+      deferredInstall.prompt();
+      deferredInstall.userChoice.then(function () { installBtn.hidden = true; deferredInstall = null; });
+    });
+  }
+  var resetBtn = document.getElementById("chartReset");
+  if (resetBtn) resetBtn.addEventListener("click", function () { chartCtl.needFit = true; renderChart(); });
+  var fullBtn = document.getElementById("chartFull");
+  var chartCard = document.getElementById("chartCard");
+  if (fullBtn && chartCard) {
+    fullBtn.addEventListener("click", function () {
+      chartCard.classList.toggle("full");
+      fullBtn.textContent = chartCard.classList.contains("full") ? "Close" : "Full screen";
+      setTimeout(function () { if (chartCtl.chart) sizeTV(); }, 50);
+    });
+  }
+  var vwapBtn = document.getElementById("vwapToggle");
+  if (vwapBtn) {
+    vwapBtn.addEventListener("click", function () {
+      chartCtl.showVwap = chartCtl.showVwap === false;
+      vwapBtn.className = chartCtl.showVwap ? "on" : "";
+      vwapBtn.setAttribute("aria-pressed", chartCtl.showVwap ? "true" : "false");
+      if (chartCtl.vwap) chartCtl.vwap.applyOptions({ visible: chartCtl.showVwap });
+    });
+  }
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js").catch(function () {});
+    navigator.serviceWorker.addEventListener("message", function (ev) {
+      var data = ev.data || {};
+      if (data.type !== "open-market") return;
+      if (data.coin) selectCoin(data.coin);
+      if (data.tab) { books.tab = data.tab; renderBooks(); }
+    });
+  }
+
   refreshBooks();
-  setInterval(refreshBooks, 4000);
+  setInterval(refreshBooks, 8000);
 
 
   window.__btcIndicator = function () {
@@ -2994,6 +3296,185 @@
       renderChart();
     });
   }
+
+  var FEED_URL = "https://api.github.com/repos/themoosegaming9-a11y/btw-indicator/issues/2";
+  var FEED_KEY = "btw-trade-feed";
+  var FEED_GAP = 120000;
+  function loadFeedCache() {
+    try { return JSON.parse(localStorage.getItem(FEED_KEY) || "null"); } catch (e) { return null; }
+  }
+  function saveFeedCache(obj) {
+    try { localStorage.setItem(FEED_KEY, JSON.stringify(obj)); } catch (e2) {}
+  }
+  function parseFeedBody(body) {
+    var m = String(body || "").match(/```json\s*([\s\S]*?)```/);
+    if (!m) return null;
+    var data = JSON.parse(m[1]);
+    if (!data || typeof data.balance !== "number" || !Array.isArray(data.trades)) return null;
+    return data;
+  }
+  function coinFromMkt(mkt) {
+    var s = String(mkt || "");
+    var names = ["DOGE", "SHIB", "BTC", "ETH", "SOL", "XRP", "BNB", "HYPE", "ZEC", "NEAR", "ADA", "STRK"];
+    for (var i = 0; i < names.length; i++) if (s.indexOf(names[i]) >= 0) return names[i];
+    return "CRYPTO";
+  }
+  function tfFromMkt(mkt) {
+    var s = String(mkt || "");
+    if (s.indexOf("15M") >= 0) return "15m";
+    if (/[A-Z]D-/.test(s)) return "1h";
+    return "";
+  }
+  function usd(n) {
+    if (n == null || !isFinite(+n)) return "";
+    var v = +n;
+    return (v > 0 ? "+" : v < 0 ? "−" : "") + "$" + Math.abs(v).toFixed(2);
+  }
+  function tradeGroups(trades) {
+    var used = {};
+    var rows = [];
+    for (var i = 0; i < trades.length; i++) {
+      if (used[i]) continue;
+      var tr = trades[i];
+      if (tr.act === "exit" || tr.act === "settle") {
+        var entry = null;
+        for (var j = i + 1; j < trades.length; j++) {
+          if (used[j]) continue;
+          if (trades[j].act === "entry" && trades[j].mkt === tr.mkt && trades[j].side === tr.side) {
+            entry = trades[j];
+            used[j] = true;
+            break;
+          }
+        }
+        used[i] = true;
+        rows.push({ exit: tr, entry: entry });
+      }
+    }
+    return rows;
+  }
+  function tradeLabel(group) {
+    var tr = group.exit || group.entry;
+    var coin = coinFromMkt(tr.mkt);
+    var tf = tfFromMkt(tr.mkt);
+    var dir = tr.side === "no" ? "DOWN" : "UP";
+    var entryPx = group.entry && group.entry.px != null ? group.entry.px : tr.px;
+    var cents = Math.round((+entryPx) * 100);
+    var head = (dir === "DOWN" ? "📉" : "🚀") + " " + coin + (tf ? " " + tf : "") + " " + dir + " @ " + cents + "¢";
+    if (!group.exit) return head;
+    var pnl = group.exit.pnl;
+    var res = String(group.exit.result || "");
+    if (/take-profit/i.test(res)) return head + " → " + usd(pnl) + " take-profit";
+    if (/stop/i.test(res)) return "🛑 " + coin + (tf ? " " + tf : "") + " stopped out " + usd(pnl);
+    return head + " → " + usd(pnl);
+  }
+  function sparkPath(data) {
+    var pts = [data.start];
+    var run = data.start;
+    var list = (data.trades || []).slice().reverse();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].pnl == null || !isFinite(+list[i].pnl)) continue;
+      run += +list[i].pnl;
+      pts.push(run);
+    }
+    pts.push(data.balance);
+    if (pts.length < 2) return "";
+    var min = pts[0], max = pts[0];
+    for (var k = 1; k < pts.length; k++) { if (pts[k] < min) min = pts[k]; if (pts[k] > max) max = pts[k]; }
+    if (max - min < 0.01) { max += 1; min -= 1; }
+    var d = "";
+    for (var n = 0; n < pts.length; n++) {
+      var x = (n / (pts.length - 1)) * 280;
+      var y = 64 - ((pts[n] - min) / (max - min)) * 52 - 6;
+      d += (n ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1) + " ";
+    }
+    return d;
+  }
+  function renderTrades(data, fetchedAt, offline) {
+    var root = document.getElementById("tradesRoot");
+    if (!root) return;
+    if (!data) {
+      root.innerHTML = '<div class="card"><div class="k-banner wait"><div class="k-banner-title">⏸️ No trades yet</div><div class="k-banner-sub">' + (offline ? "Offline. Nothing saved on this phone yet." : "Waiting for the public feed.") + "</div></div></div>";
+      return;
+    }
+    var chg = data.balance - data.start;
+    var chgCls = chg >= 0 ? "up" : "down";
+    var games = (data.wins || 0) + (data.losses || 0);
+    var rate = games ? Math.round((data.wins / games) * 100) : 0;
+    var ago = data.updated ? Math.max(0, Math.round((Date.now() / 1000 - data.updated) / 60)) : null;
+    var path = sparkPath(data);
+    var openHtml = "";
+    var open = data.open || [];
+    if (!open.length) openHtml = '<div class="k-meta">No open bets</div>';
+    else {
+      for (var i = 0; i < open.length; i++) {
+        var o = open[i];
+        openHtml += '<div class="t-row">' + escHtml(coinFromMkt(o.mkt) + " " + (o.side === "no" ? "DOWN" : "UP") + " · " + (o.count || "") + " @ " + Math.round((+o.entry_px) * 100) + "¢") + "</div>";
+      }
+    }
+    var groups = tradeGroups(data.trades || []).slice(0, 24);
+    var list = "";
+    for (var g = 0; g < groups.length; g++) {
+      var label = tradeLabel(groups[g]);
+      var pnl = groups[g].exit && groups[g].exit.pnl;
+      var cls = pnl > 0 ? "up" : "down";
+      list += '<div class="t-row ' + cls + '">' + escHtml(label) + "</div>";
+    }
+    root.innerHTML =
+      '<section class="card bal-card">' +
+        '<div class="k-beat-label">Balance</div>' +
+        '<div class="bal-num ' + chgCls + '">$' + data.balance.toFixed(2) + "</div>" +
+        '<div class="bal-sub ' + chgCls + '">' + escHtml(usd(chg)) + " since $" + data.start.toFixed(2) + " · " + (data.change_pct > 0 ? "+" : "") + data.change_pct + "%</div>" +
+        '<svg class="spark" viewBox="0 0 280 64" aria-hidden="true"><path d="' + path + '" fill="none" stroke="' + (chg >= 0 ? "#3dff9a" : "#ff3d8a") + '" stroke-width="2"></path></svg>' +
+      "</section>" +
+      '<div class="stat-row"><div class="stat"><b>' + data.wins + "-" + data.losses + '</b><span>W–L</span></div><div class="stat"><b>' + rate + '%</b><span>win rate</span></div><div class="stat"><b>$' + (data.cash != null ? data.cash.toFixed(2) : "—") + '</b><span>cash</span></div></div>' +
+      '<section class="card"><h2>Open bets</h2>' + openHtml + "</section>" +
+      '<section class="card"><h2>Recent</h2><div class="trade-list">' + list + "</div></section>" +
+      '<p class="k-disclaimer">' + (offline ? "Offline copy · " : "") + (ago == null ? "" : "Updated " + ago + " min ago") + "</p>";
+  }
+  async function refreshFeed(force) {
+    var cache = loadFeedCache();
+    var freshEnough = cache && cache.fetchedAt && (Date.now() - cache.fetchedAt) < FEED_GAP;
+    if (cache && cache.data) renderTrades(cache.data, cache.fetchedAt, false);
+    if (!force && freshEnough) return;
+    var headers = { Accept: "application/vnd.github+json" };
+    if (cache && cache.etag) headers["If-None-Match"] = cache.etag;
+    try {
+      var res = await fetch(FEED_URL, { headers: headers, cache: "no-store" });
+      if (res.status === 304 && cache && cache.data) {
+        cache.fetchedAt = Date.now();
+        saveFeedCache(cache);
+        renderTrades(cache.data, cache.fetchedAt, false);
+        return;
+      }
+      if (!res.ok) throw new Error("http " + res.status);
+      var issue = await res.json();
+      var data = parseFeedBody(issue.body);
+      if (!data) throw new Error("bad feed");
+      var next = { etag: res.headers.get("ETag"), data: data, fetchedAt: Date.now() };
+      saveFeedCache(next);
+      renderTrades(data, next.fetchedAt, false);
+    } catch (err) {
+      if (cache && cache.data) renderTrades(cache.data, cache.fetchedAt, true);
+      else renderTrades(null, 0, true);
+    }
+  }
+  document.querySelector(".tabbar").addEventListener("click", function (ev) {
+    var btn = ev.target;
+    while (btn && !btn.getAttribute("data-appview")) btn = btn.parentNode;
+    if (!btn || !btn.getAttribute) return;
+    var name = btn.getAttribute("data-appview");
+    document.getElementById("viewSignals").classList.toggle("on", name === "signals");
+    document.getElementById("viewTrades").classList.toggle("on", name === "trades");
+    var buttons = document.querySelectorAll(".tabbar button");
+    for (var i = 0; i < buttons.length; i++) {
+      var on = buttons[i] === btn;
+      buttons[i].className = on ? "on" : "";
+      buttons[i].setAttribute("aria-selected", on ? "true" : "false");
+    }
+    if (name === "trades") refreshFeed(false);
+  });
+  refreshFeed(false);
+  setInterval(function () { refreshFeed(false); }, FEED_GAP);
 
   seed();
   connect();
